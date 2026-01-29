@@ -26,8 +26,8 @@ def get_current_zone(thai_now):
         return {"name": "Afternoon Round", "msg_index": 1, "max_wait_min": 90}
     
     # รอบเย็น: ปกติ 17:xx (เผื่อดีเลย์เป็น 18:xx ได้)
-    elif h == 17 or h == 18:
-        return {"name": "Evening Round", "msg_index": 2, "max_wait_min": 60}
+    elif h == 17 or h == 18 or h == 20 or h == 19:
+        return {"name": "Evening Round", "msg_index": 2, "max_wait_min": 5}
         
     return None
 
@@ -128,3 +128,4 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
 
 
     print("="*50 + "\n")
+
