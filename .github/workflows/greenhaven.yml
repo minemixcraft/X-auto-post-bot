@@ -1,1 +1,32 @@
+name: Bot - GreenHaven
 
+on:
+  schedule:
+    - cron: '30 1 * * *'  # 08:30 ไทย
+    - cron: '0 5 * * *'   # 12:00 ไทย
+    - cron: '30 10 * * *' # 17:30 ไทย
+  workflow_dispatch:      # ปุ่มกดรันมือ
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+          
+      - run: pip install tweepy
+      
+      - name: Run GreenHaven Script
+        env:
+          # ใช้ Secret ชุด GH (GreenHaven)
+          CONSUMER_KEY: ${{ secrets.GH_CONSUMER_KEY }}
+          CONSUMER_SECRET: ${{ secrets.GH_CONSUMER_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.GH_X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.GH_X_ACCESS_TOKEN_SECRET }}
+        # ไฟล์ Python อยู่หน้าแรก เรียกได้เลย
+        run: python GreenHaven_post_x.py
