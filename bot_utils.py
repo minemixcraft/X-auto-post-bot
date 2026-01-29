@@ -14,19 +14,19 @@ def get_thai_time():
     return datetime.now(timezone.utc) + timedelta(hours=7)
 
 def get_current_zone(thai_now):
-    """คำนวณรอบการทำงาน (เช้า/กลางวัน/เย็น)"""
+    """คำนวณรอบการทำงาน (เผื่อเวลาดีเลย์ให้ 1 ชั่วโมง)"""
     h = thai_now.hour
     
-    # Cron 08:30 -> เช็คชั่วโมง 8
-    if h == 8: 
+    # รอบเช้า: ปกติ 08:xx (เผื่อดีเลย์เป็น 09:xx ได้)
+    if h == 8 or h == 9: 
         return {"name": "Morning Round", "msg_index": 0, "max_wait_min": 45}
     
-    # Cron 12:00 -> เช็คชั่วโมง 12
-    elif h == 12:
+    # รอบกลางวัน: ปกติ 12:xx (เผื่อดีเลย์เป็น 13:xx ได้)
+    elif h == 12 or h == 13:
         return {"name": "Afternoon Round", "msg_index": 1, "max_wait_min": 90}
     
-    # Cron 17:30 -> เช็คชั่วโมง 17
-    elif h == 17:
+    # รอบเย็น: ปกติ 17:xx (เผื่อดีเลย์เป็น 18:xx ได้)
+    elif h == 17 or h == 18:
         return {"name": "Evening Round", "msg_index": 2, "max_wait_min": 60}
         
     return None
@@ -125,5 +125,6 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
 
     except Exception as e:
         print(f"[Error] Critical error: {e}")
+
 
     print("="*50 + "\n")
