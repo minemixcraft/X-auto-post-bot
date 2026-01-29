@@ -21,11 +21,11 @@ jobs:
           
       - run: pip install tweepy
       
-      - name: Run Stray Cat 1 Script
+      - name: Run Stray Cat 2 Script
         env:
           # ใช้ Secret ชุด SC1 (Stray Cat 1)
-          CONSUMER_KEY: ${{ secrets.SC1_CONSUMER_KEY }}
-          CONSUMER_SECRET: ${{ secrets.SC1_CONSUMER_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.SC1_X_ACCESS_TOKEN }}
-          X_ACCESS_TOKEN_SECRET: ${{ secrets.SC1_X_ACCESS_TOKEN_SECRET }}
+          CONSUMER_KEY: ${{ secrets.SC2_CONSUMER_KEY }}
+          CONSUMER_SECRET: ${{ secrets.SC2_CONSUMER_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.SC2_X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.SC2_X_ACCESS_TOKEN_SECRET }}
         run: python Stray_cat_2_autopost_x.py
