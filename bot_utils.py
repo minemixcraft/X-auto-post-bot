@@ -207,7 +207,7 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         wait_for_schedule_start(context['target_hour'])
 
         # 4. สุ่มเวลาหน่วง (Random Delay)
-        # apply_random_delay(context['max_wait_min'])
+        apply_random_delay(context['max_wait_min'])
 
         # 5. เตรียมเนื้อหา (Prepare Content)
         client, api_v1 = get_twitter_client()
@@ -230,4 +230,5 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     
     bot_ui.print_art("COMPLETED")
     print("\n" + "="*50)
+
 
