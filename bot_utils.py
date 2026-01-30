@@ -190,10 +190,10 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         print(f"[Context] {context['name']} (Target: {context['target_hour']}:00)")
 
         # Step 2: รอจนกว่าจะถึงเวลาเริ่มงาน (System Wait)
-        # wait_for_schedule_start(context['target_hour'])
+        wait_for_schedule_start(context['target_hour'])
 
         # Step 3: สุ่มเวลาหน่วง (Random Delay)
-        # apply_random_delay(context['max_wait_min'])
+        apply_random_delay(context['max_wait_min'])
 
         # Step 4: เชื่อมต่อ API
         client, api_v1 = get_twitter_client()
@@ -220,6 +220,7 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     print("\n" + "="*50)
     print("✅ WORKFLOW COMPLETED")
     print("="*50 + "\n")
+
 
 
 
