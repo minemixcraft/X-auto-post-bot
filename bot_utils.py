@@ -152,17 +152,25 @@ def upload_images(api_v1, image_paths):
             
     return media_ids
 
+# ในไฟล์ bot_utils.py
+
 def post_tweet(client, message, media_ids=None):
     """ส่งทวีตสุดท้ายไปยัง X"""
     print("[Sending] Posting tweet to X...")
+
+    # 🔥 [จุดที่แก้] ถ้า media_ids เป็นลิสต์ว่าง [] ให้เปลี่ยนเป็น None ทันที
+    # เพื่อบอก API ว่า "รอบนี้ไม่เอารูปนะ" (ไม่ใช่ส่งลิสต์รูปว่างๆ ไป)
+    if not media_ids:
+        media_ids = None 
+
     try:
+        # ส่งค่าที่เป็น None ไป API จะเข้าใจว่าโพสต์ข้อความล้วน
         response = client.create_tweet(text=message, media_ids=media_ids)
         print(f"[Success] Tweet Sent! ID: {response.data['id']}")
         return True
     except Exception as e:
         print(f"[Error] Failed to tweet: {e}")
         return False
-
 # ======================================================
 # 4. MAIN ORCHESTRATOR (ผู้คุมวง)
 # ======================================================
@@ -212,5 +220,6 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     print("\n" + "="*50)
     print("✅ WORKFLOW COMPLETED")
     print("="*50 + "\n")
+
 
 
