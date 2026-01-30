@@ -62,7 +62,7 @@ def print_art(key):
 def print_header(bot_name):
     print("\n" + "="*50)
     print_art("HEADER")
-    print(f"   🤖 BOT: {bot_name.upper()}")
+    print(f"          {bot_name.upper()}")
     print("="*50 + "\n")
 
 def print_section(art_key):
