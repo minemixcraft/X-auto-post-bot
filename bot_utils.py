@@ -4,18 +4,12 @@ import random
 import tweepy
 from datetime import datetime, timezone, timedelta
 
-# ======================================================
-# 🎨 UI THEME SELECTION
-# ======================================================
-# เลือกเปิด/ปิด Comment บรรทัดนี้เพื่อสลับธีม
-
-# import bot_ui_text as bot_ui  # ธีม Text (d[o_0]b)
-import bot_ui as bot_ui       # ธีม ASCII (Pagga)
+# 🔥 IMPORT UI MODULE
+import bot_ui_text as bot_ui 
 
 # ======================================================
-# 1. TIME & SCHEDULE HELPERS
+# 1. TIME & SCHEDULE
 # ======================================================
-
 def get_thai_time():
     return datetime.now(timezone.utc) + timedelta(hours=7)
 
@@ -32,9 +26,8 @@ def get_schedule_context(current_hour):
         return {"name": "Evening Round", "msg_index": 2, "max_wait_min": 90, "target_hour": 17, "upload_image": False}
 
 # ======================================================
-# 2. WAITING & DELAY LOGIC
+# 2. WAIT & DELAY
 # ======================================================
-
 def execute_sleep_with_progress(total_wait_seconds):
     effective_wait = max(0, total_wait_seconds - 60)
     if effective_wait < 10: 
@@ -49,32 +42,26 @@ def execute_sleep_with_progress(total_wait_seconds):
         percent = i * 10
         remaining = effective_wait - (chunk_size * i)
         is_done = (i == 10)
-        bot_ui.print_shades_bar(percent, remaining, is_finished=is_done)
+        bot_ui.print_waiting_bar(percent, remaining, is_finished=is_done)
 
 def wait_for_schedule_start(target_hour):
-    bot_ui.print_section("WAITING")
-    
+    bot_ui.print_section_header("⏳ [WAITING PROCESS]")
     while True:
         now = get_thai_time()
         if now.hour >= target_hour:
             break 
         wait_seconds = get_seconds_until_target(now, target_hour)
-        
         if wait_seconds > 0:
             execute_sleep_with_progress(wait_seconds)
-            break
+            break 
         else:
             time.sleep(30)
-            
-    bot_ui.print_closer() # ✅ เรียกใช้ได้เลย ไม่ต้องเช็ค
+    bot_ui.print_closer()
 
 def apply_random_delay(max_wait_min):
     if max_wait_min > 0:
-        bot_ui.print_section("EXECUTION")
-        
+        bot_ui.print_section_header("🚀 [EXECUTION START]")
         wait_sec = random.randint(60, max_wait_min * 60)
-        
-        # ส่ง Strategy info
         bot_ui.print_info("Strategy", f"Random Delay ({wait_sec // 60}m {wait_sec % 60}s)")
         print("   ... (Sleeping) ...")
         
@@ -83,45 +70,19 @@ def apply_random_delay(max_wait_min):
             time.sleep(chunk_size)
             percent = i * 10
             remaining = max(0, wait_sec - (chunk_size * i))
-            
-            if i == 10:
-                bot_ui.print_shades_bar(100, 0, is_finished=True, custom_status="Waking Up!")
-            else:
-                bot_ui.print_shades_bar(percent, remaining, is_finished=False, custom_status="Sleeping...")
-        
-        bot_ui.print_closer() # ✅ เรียกใช้ได้เลย
+            is_done = (i == 10)
+            status = "Waking Up!" if is_done else "Sleeping..."
+            bot_ui.print_waiting_bar(percent, remaining, is_finished=is_done, custom_status=status)
+        bot_ui.print_closer()
 
 # ======================================================
-# 3. LOGGING & DISPLAY HELPER
+# 3. CONTENT & API
 # ======================================================
-
-def log_system_info(context, start_time, bot_data, hashtag_pool):
-    bot_ui.print_section("SYSTEM_CHECK")
-    
-    bot_ui.print_info("Time Zone", "Asia/Bangkok (UTC+7)")
-    bot_ui.print_info("Context", context['name'])
-    bot_ui.print_info("Target Time", f"{context['target_hour']}:00")
-    bot_ui.print_info("Current Date", start_time.strftime("%Y-%m-%d"))
-    bot_ui.print_info("Has Image?", "Yes" if context['upload_image'] else "No")
-    
-    print("") 
-    
-    bot_ui.print_info("Msg Loaded", f"{len(bot_data['messages'])} items")
-    bot_ui.print_info("Tag Pool", f"{len(hashtag_pool)} tags")
-    bot_ui.print_info("Max Delay", f"{context['max_wait_min']} mins")
-    
-    bot_ui.print_closer() # ✅ เรียกใช้ได้เลย
-
-# ======================================================
-# 4. CONTENT & TWITTER API
-# ======================================================
-
 def prepare_message(msg_index, messages_list, hashtag_pool):
     if msg_index >= len(messages_list): msg_index = 0
     base_msg = messages_list[msg_index].strip() + "\n\n"
     tags = list(set(hashtag_pool))
     random.shuffle(tags)
-    
     final_msg = base_msg
     for t in tags:
         if len(final_msg + t + " ") <= 280: final_msg += t + " "
@@ -135,43 +96,43 @@ def get_twitter_client():
 
 def upload_images(api_v1, image_paths):
     media_ids = []
-    bot_ui.print_section("UPLOADING")
+    # 1. แสดง Header Uploading
+    bot_ui.print_upload_header()
     
     valid_images = [img for img in image_paths if os.path.exists(img)]
-    bot_ui.print_info("Media Found", f"{len(valid_images)} Images")
+    bot_ui.print_media_found(len(valid_images))
 
     for img_path in valid_images:
         try:
             upload = api_v1.media_upload(filename=img_path)
             media_ids.append(upload.media_id)
-            print(f"   ✔ Uploaded      : {os.path.basename(img_path)} [ID: {str(upload.media_id)[:5]}...]")
+            # 2. แสดง item ที่อัปโหลด
+            bot_ui.print_upload_item(os.path.basename(img_path), upload.media_id)
         except Exception as e:
-            bot_ui.print_error(f"Error {img_path}: {e}")
+            bot_ui.print_upload_error(img_path, e)
             
-    bot_ui.print_closer() # ✅ เรียกใช้ได้เลย
+    # 3. ปิดเส้น Uploading
+    bot_ui.print_closer()
     return media_ids
 
 def post_tweet(client, message, media_ids=None):
+    # 1. แสดง Header POSE
+    bot_ui.print_pose_header()
+    
     if not media_ids: media_ids = None 
     try:
         response = client.create_tweet(text=message, media_ids=media_ids)
-        
-        # ปริ้น Success 
-        # (ใน bot_ui ASCII จะปริ้นแค่ text ปกติ, ใน bot_ui_text จะปริ้นแบบ section)
-        # แต่เรียกชื่อฟังก์ชันเดียวกันได้เลย
-        print(f"\n ✅ [TWEET POSTED SUCCESSFULLY]") 
-        bot_ui.print_info("Tweet ID", response.data['id'])
-        print("")
-
-        return True
+        # 2. แสดง Success
+        bot_ui.print_post_success(response.data['id'])
     except Exception as e:
-        bot_ui.print_error(f"Failed to tweet: {e}")
-        return False
+        print(f"   ❌ Failed to tweet: {e}")
+    
+    # 3. ปิดเส้น POSE
+    bot_ui.print_closer()
 
 # ======================================================
-# 5. MAIN WORKFLOW
+# 4. MAIN FLOW
 # ======================================================
-
 def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     bot_ui.print_header(bot_name)
 
@@ -179,34 +140,38 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         start_time = get_thai_time()
         context = get_schedule_context(start_time.hour)
         
-        log_system_info(context, start_time, bot_data, hashtag_pool)
+        # System Check
+        bot_ui.print_system_check(context['name'], f"{context['target_hour']}:00", context['upload_image'])
 
-        wait_for_schedule_start(1)
+        # Wait
         wait_for_schedule_start(context['target_hour'])
-        
 
+        # Random Delay
         apply_random_delay(context['max_wait_min'])
-        apply_random_delay(2)
-        
 
+        # Prepare Content
         client, api_v1 = get_twitter_client()
         message = prepare_message(context['msg_index'], bot_data["messages"], hashtag_pool)
         
+        # --- PREVIEW SECTION ---
         bot_ui.print_preview_box(message)
 
+        # --- UPLOAD SECTION ---
         media_ids = []
         if context['upload_image'] and "images" in bot_data:
             media_ids = upload_images(api_v1, bot_data["images"])
+        else:
+            # กรณีไม่มีรูป ก็ให้แสดง Section ว่างๆ หรือข้ามไป (ตาม Logic เดิมคือข้าม แต่ถ้าอยากให้โชว์ก็ได้)
+            # เอาตาม Logic เดิมคือถ้าไม่มีรูปก็ไม่เข้า function upload
+            pass
 
+        # --- POST SECTION ---
         post_tweet(client, message, media_ids)
 
     except Exception as e:
         print("\n" + "!"*50)
-        bot_ui.print_error(f"CRITICAL SYSTEM ERROR: {e}")
+        print(f"❌ CRITICAL SYSTEM ERROR: {e}")
         print("!"*50)
     
-    bot_ui.print_footer()
-
-
-
-
+    # --- END SECTION ---
+    bot_ui.print_end()
