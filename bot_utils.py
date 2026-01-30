@@ -159,7 +159,7 @@ def post_tweet(client, message, media_ids=None):
         # ปริ้น Success 
         # (ใน bot_ui ASCII จะปริ้นแค่ text ปกติ, ใน bot_ui_text จะปริ้นแบบ section)
         # แต่เรียกชื่อฟังก์ชันเดียวกันได้เลย
-        print(f"\n   [TWEET POSTED SUCCESSFULLY]") 
+        print(f"\n ✅ [TWEET POSTED SUCCESSFULLY]") 
         bot_ui.print_info("Tweet ID", response.data['id'])
         print("")
 
@@ -181,7 +181,7 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         
         log_system_info(context, start_time, bot_data, hashtag_pool)
 
-        wait_for_schedule_start(0)
+        wait_for_schedule_start(1)
         # wait_for_schedule_start(context['target_hour'])====================================================== ======================================================
         
 
@@ -206,4 +206,5 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         print("!"*50)
     
     bot_ui.print_footer()
+
 
