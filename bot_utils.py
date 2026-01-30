@@ -20,35 +20,30 @@ def get_thai_time():
 def get_schedule_context(current_hour):
     """
     ตรวจสอบและคืนค่า Config ตามช่วงเวลา
-    Logic: ใช้ < (น้อยกว่า) เพื่อรองรับการมารอก่อนเวลา (Early Bird)
+    (ปรับปรุง: รองรับการรันล่วงหน้า 2 ชั่วโมงได้จริง 100%)
     """
-    # 00:00 - 11:59 -> รอบเช้า (เป้า 08:00)
-    if current_hour < 12:
+    if current_hour < 10:
         return {
             "name": "Morning Round",
             "msg_index": 0,
             "max_wait_min": 45,
             "target_hour": 8,
-            "upload_image": True  # มีเฉพาะรอบเช้าที่ลงรูป
+            "upload_image": True
         }
-    
-    # 12:00 - 17:59 -> รอบบ่าย (เป้า 13:00)
-    elif current_hour < 18:
+    elif current_hour < 15:
         return {
             "name": "Afternoon Round",
             "msg_index": 1,
-            "max_wait_min": 90,
-            "target_hour": 13,
+            "max_wait_min": 60,
+            "target_hour": 12, # แก้เป็น 12 ตามที่คุณต้องการ
             "upload_image": False
         }
-    
-    # 18:00 - 23:59 -> รอบเย็น (เป้า 19:00)
     else:
         return {
             "name": "Evening Round",
             "msg_index": 2,
-            "max_wait_min": 10,
-            "target_hour": 19,
+            "max_wait_min": 90,
+            "target_hour": 17, # แก้เป็น 17 ตามที่คุณต้องการ
             "upload_image": False
         }
 
@@ -217,3 +212,4 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     print("\n" + "="*50)
     print("✅ WORKFLOW COMPLETED")
     print("="*50 + "\n")
+
