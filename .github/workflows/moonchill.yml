@@ -30,6 +30,7 @@ jobs:
       
       - name: Run MoonChill Script
         env:
+          PYTHONUNBUFFERED: 1
           # ใช้ Secret ชุด MC (MoonChill)
           CONSUMER_KEY: ${{ secrets.MC_CONSUMER_KEY }}
           CONSUMER_SECRET: ${{ secrets.MC_CONSUMER_SECRET }}
