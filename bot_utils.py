@@ -4,7 +4,7 @@ import random
 import tweepy
 from datetime import datetime, timezone, timedelta
 
-# 🔥 IMPORT UI MODULE (ดึงกราฟิกมาใช้)
+# 🔥 IMPORT UI MODULE
 import bot_ui
 
 # ======================================================
@@ -71,9 +71,7 @@ def wait_for_schedule_start(target_hour):
             time.sleep(30)
 
 def apply_random_delay(max_wait_min):
-    """
-    ฟังก์ชันสุ่มเวลาหน่วง (Anti-spam) พร้อม Progress Bar
-    """
+    """ฟังก์ชันสุ่มเวลาหน่วง (Anti-spam) พร้อม Progress Bar"""
     if max_wait_min > 0:
         bot_ui.print_section("EXECUTION")
         
@@ -82,26 +80,45 @@ def apply_random_delay(max_wait_min):
         bot_ui.print_info("Strategy", f"Random Delay {wait_sec // 60}m {wait_sec % 60}s")
         
         # 2. เริ่มนับถอยหลังแบบมี Bar
-        # แบ่งเวลาเป็น 10 ช่วง (Chunks)
         chunk_size = wait_sec / 10
-        
         print(f"   💤 Timer Started: {bot_ui.format_time_str(wait_sec)} remaining.")
 
         for i in range(1, 11):
             time.sleep(chunk_size)
-            
             percent = i * 10
             remaining = max(0, wait_sec - (chunk_size * i))
             
             if i == 10:
-                # รอบสุดท้าย: 100% -> Solid Bar + WAKEUP!!!
                 bot_ui.print_shades_bar(100, 0, is_finished=True, custom_status="WAKEUP!!!")
             else:
-                # ระหว่างรอ: Grey Bar + Sleeping...
                 bot_ui.print_shades_bar(percent, remaining, is_finished=False, custom_status="Sleeping...")
 
 # ======================================================
-# 3. CONTENT & TWITTER API
+# 3. LOGGING & DISPLAY HELPER (NEW!)
+# ======================================================
+
+def log_system_info(context, start_time, bot_data, hashtag_pool):
+    """
+    แสดงข้อมูล System Check ทั้งหมด
+    (แยกออกมาเพื่อให้ Main Workflow สะอาด)
+    """
+    bot_ui.print_section("SYSTEM_CHECK")
+    
+    # กลุ่ม 1: ข้อมูลบริบทเวลา
+    bot_ui.print_info("Context", context['name'])
+    bot_ui.print_info("Target Time", f"{context['target_hour']}:00")
+    bot_ui.print_info("Current Date", start_time.strftime("%Y-%m-%d"))
+    bot_ui.print_info("Has Image?", "Yes" if context['upload_image'] else "No")
+    
+    print("") # เว้นบรรทัด
+    
+    # กลุ่ม 2: ข้อมูล Data & Config
+    bot_ui.print_info("Msg Loaded", f"{len(bot_data['messages'])} items")
+    bot_ui.print_info("Tag Pool", f"{len(hashtag_pool)} tags")
+    bot_ui.print_info("Max Delay", f"{context['max_wait_min']} mins")
+
+# ======================================================
+# 4. CONTENT & TWITTER API
 # ======================================================
 
 def prepare_message(msg_index, messages_list, hashtag_pool):
@@ -169,43 +186,41 @@ def post_tweet(client, message, media_ids=None):
         return False
 
 # ======================================================
-# 4. MAIN WORKFLOW ORCHESTRATOR
+# 5. MAIN WORKFLOW ORCHESTRATOR
 # ======================================================
 
 def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     """
-    Main Function: ควบคุมการทำงานทั้งหมด
+    Main Function: ควบคุมการทำงานทั้งหมด (Clean Version)
     """
     bot_ui.print_header(bot_name)
 
     try:
-        # 1. ตรวจสอบบริบทเวลา
+        # 1. ตรวจสอบบริบท (Context)
         start_time = get_thai_time()
         context = get_schedule_context(start_time.hour)
         
-        bot_ui.print_section("SYSTEM_CHECK")
-        bot_ui.print_info("Context", context['name'])
-        bot_ui.print_info("Target Time", f"{context['target_hour']}:00")
-        bot_ui.print_info("Has Image?", "Yes" if context['upload_image'] else "No")
+        # 2. แสดงข้อมูลระบบ (System Info) 🔥 เรียกใช้ฟังก์ชันใหม่ตรงนี้
+        log_system_info(context, start_time, bot_data, hashtag_pool)
 
-        # 2. รอเวลา (Smart Wait)
+        # 3. รอเวลาเป้าหมาย (Smart Wait)
         wait_for_schedule_start(context['target_hour'])
 
-        # 3. สุ่มเวลาหน่วง (Random Delay)
+        # 4. สุ่มเวลาหน่วง (Random Delay)
         apply_random_delay(context['max_wait_min'])
 
-        # 4. เตรียมเนื้อหา
+        # 5. เตรียมเนื้อหา (Prepare Content)
         client, api_v1 = get_twitter_client()
         message = prepare_message(context['msg_index'], bot_data["messages"], hashtag_pool)
         
         bot_ui.print_preview_box(message)
 
-        # 5. จัดการรูปภาพ (ถ้ามี)
+        # 6. จัดการรูปภาพ (Image Handling)
         media_ids = []
         if context['upload_image'] and "images" in bot_data:
             media_ids = upload_images(api_v1, bot_data["images"])
 
-        # 6. ส่งทวีต
+        # 7. ส่งทวีต (Post)
         post_tweet(client, message, media_ids)
 
     except Exception as e:
