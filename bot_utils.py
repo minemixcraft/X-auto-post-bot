@@ -9,8 +9,8 @@ from datetime import datetime, timezone, timedelta
 # ======================================================
 # เลือกเปิด/ปิด Comment บรรทัดนี้เพื่อสลับธีม
 
-import bot_ui_text as bot_ui  # ธีม Text (d[o_0]b)
-# import bot_ui as bot_ui       # ธีม ASCII (Pagga)
+# import bot_ui_text as bot_ui  # ธีม Text (d[o_0]b)
+import bot_ui as bot_ui       # ธีม ASCII (Pagga)
 
 # ======================================================
 # 1. TIME & SCHEDULE HELPERS
@@ -206,5 +206,6 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         print("!"*50)
     
     bot_ui.print_footer()
+
 
 
