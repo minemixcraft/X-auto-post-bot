@@ -31,6 +31,7 @@ jobs:
       
       - name: Run Stray Cat 1 Script
         env:
+          PYTHONUNBUFFERED: 1
           # ใช้ Secret ชุด SC1 (Stray Cat 1)
           CONSUMER_KEY: ${{ secrets.SC1_CONSUMER_KEY }}
           CONSUMER_SECRET: ${{ secrets.SC1_CONSUMER_SECRET }}
