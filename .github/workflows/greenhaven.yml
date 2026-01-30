@@ -30,6 +30,7 @@ jobs:
       
       - name: Run GreenHaven Script
         env:
+          PYTHONUNBUFFERED: 1
           # ใช้ Secret ชุด GH (GreenHaven)
           CONSUMER_KEY: ${{ secrets.GH_CONSUMER_KEY }}
           CONSUMER_SECRET: ${{ secrets.GH_CONSUMER_SECRET }}
