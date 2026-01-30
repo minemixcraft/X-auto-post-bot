@@ -1,6 +1,6 @@
 # ======================================================
 # 🛠️ ไฟล์: bot_utils.py
-# (ปรับปรุง: ใช้ Range Logic + ระบบรอเวลา Start)
+# (Refactored: Clean Code / Modular / Robust Logic)
 # ======================================================
 
 import os
@@ -9,159 +9,211 @@ import random
 import tweepy
 from datetime import datetime, timezone, timedelta
 
+# ======================================================
+# 1. TIME & SCHEDULE MANAGEMENT (จัดการเวลา)
+# ======================================================
+
 def get_thai_time():
     """ดึงเวลาปัจจุบัน (Thailand Zone UTC+7)"""
     return datetime.now(timezone.utc) + timedelta(hours=7)
 
-def get_zone_config(current_hour):
+def get_schedule_context(current_hour):
     """
-    ตรวจสอบช่วงเวลาโดยใช้ Logic แบบ Range (<=) 
-    เพื่อให้ครอบคลุมทุกช่วงเวลา ไม่ว่าจะรันตอนไหน
+    ตรวจสอบและคืนค่า Config ตามช่วงเวลา
+    Logic: ใช้ < (น้อยกว่า) เพื่อรองรับการมารอก่อนเวลา (Early Bird)
     """
-    # 1. ช่วงเช้า (เที่ยงคืน ถึง 12:59) -> เป้าหมายเริ่มงาน 08:00
-    if current_hour <= 12:
+    # 00:00 - 11:59 -> รอบเช้า (เป้า 08:00)
+    if current_hour < 12:
         return {
             "name": "Morning Round",
-            "target_hour": 8,   # เริ่มงาน 8 โมง
             "msg_index": 0,
-            "max_wait_random": 15 # สุ่มดีเลย์หลังเริ่มงานไม่เกิน 45 นาที
+            "max_wait_min": 45,
+            "target_hour": 8,
+            "upload_image": True  # มีเฉพาะรอบเช้าที่ลงรูป
         }
     
-    # 2. ช่วงบ่าย (13:00 ถึง 18:59) -> เป้าหมายเริ่มงาน 13:00
-    elif current_hour <= 18:
+    # 12:00 - 17:59 -> รอบบ่าย (เป้า 13:00)
+    elif current_hour < 18:
         return {
             "name": "Afternoon Round",
-            "target_hour": 13,  # เริ่มงาน 13 โมง
             "msg_index": 1,
-            "max_wait_random": 90 # สุ่มดีเลย์หลังเริ่มงานไม่เกิน 90 นาที
+            "max_wait_min": 90,
+            "target_hour": 13,
+            "upload_image": False
         }
     
-    # 3. ช่วงเย็น (19:00 ถึง 23:59) -> เป้าหมายเริ่มงาน 19:00
+    # 18:00 - 23:59 -> รอบเย็น (เป้า 19:00)
     else:
         return {
             "name": "Evening Round",
-            "target_hour": 18,  # เริ่มงาน 19 โมง (1 ทุ่ม)
             "msg_index": 2,
-            "max_wait_random": 30  # สุ่มดีเลย์หลังเริ่มงานไม่เกิน 15 นาที
+            "max_wait_min": 10,
+            "target_hour": 19,
+            "upload_image": False
         }
 
-def wait_until_target_time(target_hour):
+def wait_for_schedule_start(target_hour):
     """
-    ฟังก์ชันสำหรับ 'รอ' ให้ถึงเวลาเริ่มงานจริงๆ
-    - ถ้ามา 'ก่อน' -> นั่งรอ (Sleep)
-    - ถ้ามา 'หลัง' -> ทำงานเลย
+    รอให้ถึงเวลาเริ่มงาน (Blocking Wait)
+    - ถ้ามาก่อนเวลา: รอนับถอยหลัง
+    - ถ้ามาหลังเวลา: ผ่านไปทำต่อทันที
     """
     print(f"[Wait System] Checking time... Target is {target_hour}:00")
     
     while True:
         now = get_thai_time()
-        
-        # ถ้าชั่วโมงปัจจุบัน ยังน้อยกว่า เป้าหมาย (เช่น ตอนนี้ 7 โมง, เป้าหมาย 8 โมง)
         if now.hour < target_hour:
-            minutes_left = (target_hour - now.hour) * 60 - now.minute
             print(f"\r⏳ Early Bird: Waiting for {target_hour}:00... (Current: {now.strftime('%H:%M:%S')})", end="")
-            time.sleep(30) # เช็คทุกๆ 30 วินาที
+            time.sleep(30) # เช็คทุก 30 วินาที
         else:
-            # ถึงเวลาแล้ว (หรือเลยมาแล้ว)
             print(f"\n✅ It's time! ({now.strftime('%H:%M:%S')}) Starting process...")
             break
 
-def prepare_content_with_tags(msg_index, messages_list, hashtag_pool):
-    """เตรียมข้อความ + สุ่มแฮชแท็ก"""
+def apply_random_delay(max_minutes):
+    """สุ่มเวลาหน่วงหลังเริ่มงาน (Anti-Bot Detection)"""
+    if max_minutes <= 0:
+        return
+
+    wait_sec = random.randint(60, max_minutes * 60)
+    minutes = wait_sec // 60
+    seconds = wait_sec % 60
+    
+    print("-" * 50)
+    print(f"[Strategy] Random delay: {minutes} min {seconds} sec...")
+    print("-" * 50)
+    time.sleep(wait_sec)
+
+# ======================================================
+# 2. CONTENT PREPARATION (เตรียมเนื้อหา)
+# ======================================================
+
+def prepare_message(msg_index, messages_list, hashtag_pool):
+    """ประกอบร่างข้อความและแฮชแท็ก"""
+    # ป้องกัน Index Error
     if msg_index >= len(messages_list):
-        msg_index = 0 # กัน Error ถ้า Index เกิน
+        msg_index = 0
         
-    base_msg = messages_list[msg_index] + "\n\n"
+    base_msg = messages_list[msg_index].strip() + "\n\n"
+    
+    # สุ่มแฮชแท็ก
     tags = list(set(hashtag_pool))
     random.shuffle(tags)
     
     final_msg = base_msg
-    selected_tags = []
-    
     for t in tags:
+        # เช็คความยาวไม่เกิน 280 (เผื่อที่ไว้นิดหน่อย)
         if len(final_msg + t + " ") <= 280: 
             final_msg += t + " "
-            selected_tags.append(t)
         else:
             break 
             
-    return final_msg.strip(), selected_tags
+    return final_msg.strip()
 
-def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
-    """
-    🔥 ฟังก์ชันหลักสำหรับรันบอท (Logic ใหม่)
-    """
-    print("\n" + "="*50)
-    print(f"🤖 {bot_name.upper()} X-BOT: AUTOPOST SYSTEM")
-    print("="*50)
+# ======================================================
+# 3. TWITTER API INTERACTION (ติดต่อ Twitter)
+# ======================================================
 
-    # 1. เช็คเวลาและดึง Config ของโซนนั้นๆ
-    start_time = get_thai_time()
-    config = get_zone_config(start_time.hour)
-    
-    print(f"[Zone Detect] {config['name']} (Target: {config['target_hour']}:00)")
-
-    # 2. เข้าสู่โหมดรอเวลา (ถ้ามาก่อนเวลา)
-    wait_until_target_time(config['target_hour'])
-
-    # 3. ตรวจสอบ API Keys
+def get_twitter_client():
+    """ดึง Environment Variables และเชื่อมต่อ API"""
     consumer_key = os.getenv("CONSUMER_KEY")
     consumer_secret = os.getenv("CONSUMER_SECRET")
     access_token = os.getenv("X_ACCESS_TOKEN")
     access_token_secret = os.getenv("X_ACCESS_TOKEN_SECRET")
     
     if not all([consumer_key, consumer_secret, access_token, access_token_secret]):
-        print("[Critical Error] API Keys not found in Environment Variables")
-        return
+        raise ValueError("❌ Missing API Keys in Environment Variables")
 
-    # 4. กลยุทธ์สุ่มเวลา (Random Delay) *หลัง* จากถึงเวลาเริ่มงานแล้ว
-    # เพื่อไม่ให้บอทโพสต์เป๊ะเกินไปจนดูเหมือนหุ่นยนต์
-    wait_sec = random.randint(60, config['max_wait_random'] * 60)
-    print("-" * 50)
-    print(f"[Strategy] Waiting random delay: {wait_sec // 60} min {wait_sec % 60} sec...")
-    print("-" * 50)
+    # Client (v2) สำหรับโพสต์
+    client = tweepy.Client(
+        consumer_key=consumer_key,
+        consumer_secret=consumer_secret,
+        access_token=access_token,
+        access_token_secret=access_token_secret
+    )
     
-    time.sleep(wait_sec)
+    # API (v1.1) สำหรับอัปโหลดรูป
+    auth = tweepy.OAuth1UserHandler(
+        consumer_key, consumer_secret, access_token, access_token_secret
+    )
+    api_v1 = tweepy.API(auth)
+    
+    return client, api_v1
 
-    # 5. เริ่มการโพสต์
+def upload_images(api_v1, image_paths):
+    """อัปโหลดรูปภาพและคืนค่า Media IDs"""
+    media_ids = []
+    print("[Media] Processing images...")
+    
+    for img_path in image_paths:
+        if os.path.exists(img_path):
+            try:
+                upload = api_v1.media_upload(filename=img_path)
+                media_ids.append(upload.media_id)
+                print(f"   - Uploaded: {img_path} [ID: {upload.media_id}]")
+            except Exception as e:
+                print(f"   - ⚠️ Error uploading {img_path}: {e}")
+        else:
+            print(f"   - ⚠️ File not found: {img_path}")
+            
+    return media_ids
+
+def post_tweet(client, message, media_ids=None):
+    """ส่งทวีตสุดท้ายไปยัง X"""
+    print("[Sending] Posting tweet to X...")
     try:
-        # เชื่อมต่อ API
-        client = tweepy.Client(consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_token_secret=access_token_secret)
-        auth = tweepy.OAuth1UserHandler(consumer_key, consumer_secret, access_token, access_token_secret)
-        api_v1 = tweepy.API(auth)
-        
-        # เตรียมเนื้อหา
-        msg_to_post, _ = prepare_content_with_tags(
-            config['msg_index'], 
+        response = client.create_tweet(text=message, media_ids=media_ids)
+        print(f"[Success] Tweet Sent! ID: {response.data['id']}")
+        return True
+    except Exception as e:
+        print(f"[Error] Failed to tweet: {e}")
+        return False
+
+# ======================================================
+# 4. MAIN ORCHESTRATOR (ผู้คุมวง)
+# ======================================================
+
+def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
+    """
+    ฟังก์ชันหลัก: ควบคุมลำดับการทำงานทั้งหมด
+    """
+    print("\n" + "="*50)
+    print(f"🤖 {bot_name.upper()} X-BOT STARTED")
+    print("="*50)
+
+    try:
+        # Step 1: ตรวจสอบเวลาและบริบท
+        start_time = get_thai_time()
+        context = get_schedule_context(start_time.hour)
+        print(f"[Context] {context['name']} (Target: {context['target_hour']}:00)")
+
+        # Step 2: รอจนกว่าจะถึงเวลาเริ่มงาน (System Wait)
+        wait_for_schedule_start(context['target_hour'])
+
+        # Step 3: สุ่มเวลาหน่วง (Random Delay)
+        apply_random_delay(context['max_wait_min'])
+
+        # Step 4: เชื่อมต่อ API
+        client, api_v1 = get_twitter_client()
+
+        # Step 5: เตรียมเนื้อหา
+        message = prepare_message(
+            context['msg_index'], 
             bot_data["messages"], 
             hashtag_pool
         )
-        
-        print("-" * 30)
-        print("PREVIEW:\n" + msg_to_post)
-        print("-" * 30)
+        print(f"\n📝 PREVIEW:\n{message}\n{'-'*30}")
 
-        # อัปโหลดรูปภาพ (ถ้ามีและเป็นรอบเช้า)
+        # Step 6: จัดการรูปภาพ (เฉพาะรอบที่กำหนด)
         media_ids = []
-        if config['msg_index'] == 0:  # โพสต์รูปเฉพาะรอบเช้า
-            print("[Media] Checking images...")
-            for img in bot_data["images"]:
-                if os.path.exists(img):
-                    try:
-                        up = api_v1.media_upload(filename=img)
-                        media_ids.append(up.media_id)
-                        print(f"   - Uploaded: {img} [OK]")
-                    except Exception as e:
-                        print(f"   - Error uploading {img}: {e}")
-                else:
-                    print(f"   - Missing file: {img}")
+        if context['upload_image'] and "images" in bot_data:
+            media_ids = upload_images(api_v1, bot_data["images"])
 
-        # ส่งทวีต
-        print("[Sending] Posting tweet to X...")
-        client.create_tweet(text=msg_to_post, media_ids=media_ids if media_ids else None)
-        print(f"[Success] Posted successfully!")
+        # Step 7: โพสต์จริง
+        post_tweet(client, message, media_ids)
 
     except Exception as e:
-        print(f"[Error] Critical error: {e}")
-
+        print(f"\n❌ CRITICAL WORKFLOW ERROR: {e}")
+    
+    print("\n" + "="*50)
+    print("✅ WORKFLOW COMPLETED")
     print("="*50 + "\n")
