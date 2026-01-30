@@ -18,7 +18,7 @@ def get_current_zone(thai_now):
     h = thai_now.hour
     
     # รอบเช้า: ปกติ 08:xx (เผื่อดีเลย์เป็น 09:xx ได้)
-    if h == 8 or h == : 10
+    if h == 8 or h == 10 :
         return {"name": "Morning Round", "msg_index": 0, "max_wait_min": 45}
     
     # รอบกลางวัน: ปกติ 12:xx (เผื่อดีเลย์เป็น 13:xx ได้)
@@ -131,6 +131,7 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
 
 
     print("="*50 + "\n")
+
 
 
 
