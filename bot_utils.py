@@ -154,7 +154,7 @@ def upload_images(api_v1, image_paths):
 def post_tweet(client, message, media_ids=None):
     if not media_ids: media_ids = None 
     try:
-        response = client.create_tweet(text=message, media_ids=media_ids)
+        # response = client.create_tweet(text=message, media_ids=media_ids) ====================================================== ======================================================
         
         # ปริ้น Success 
         # (ใน bot_ui ASCII จะปริ้นแค่ text ปกติ, ใน bot_ui_text จะปริ้นแบบ section)
@@ -181,9 +181,13 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         
         log_system_info(context, start_time, bot_data, hashtag_pool)
 
-        wait_for_schedule_start(context['target_hour'])
+        wait_for_schedule_start(0)
+        # wait_for_schedule_start(context['target_hour'])====================================================== ======================================================
+        
 
-        apply_random_delay(context['max_wait_min'])
+        # apply_random_delay(context['max_wait_min'])====================================================== ======================================================
+        apply_random_delay(2)
+        
 
         client, api_v1 = get_twitter_client()
         message = prepare_message(context['msg_index'], bot_data["messages"], hashtag_pool)
