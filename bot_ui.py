@@ -89,18 +89,21 @@ def print_preview_box(message):
     for line in lines:
         print(f"│ {line:<{width-2}} │")
     print("└" + "─" * width + "┘")
-
-def print_shades_bar(percent, remaining_seconds, is_finished=False):
-    """แสดง Progress Bar แบบ Shades"""
+def print_shades_bar(percent, remaining_seconds, is_finished=False, custom_status=None):
+    """
+    แสดง Progress Bar แบบ Shades
+    - เพิ่ม custom_status: เพื่อให้เปลี่ยนข้อความด้านหลังได้ตามใจชอบ
+    """
     bar_length = 25
     filled_length = int(bar_length * percent // 100)
     
     if is_finished:
         bar_char = '█'
-        status_text = "READY TO START!"
+        # ถ้าไม่ได้ส่งข้อความมา ให้ใช้ค่า Default
+        status_text = custom_status if custom_status else "READY TO START!"
     else:
         bar_char = '▒'
-        status_text = "Waiting..."
+        status_text = custom_status if custom_status else "Waiting..."
 
     bar = bar_char * filled_length + '░' * (bar_length - filled_length)
     time_str = format_time_str(remaining_seconds)
