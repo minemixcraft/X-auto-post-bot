@@ -1,4 +1,4 @@
-name: Bot - MoonChill
+name: Auto_Post_Moonchill
 on:
   schedule:
     # 1. รอบเช้า (เป้า 08:00 ไทย) -> ตื่น 07:00 ไทย
@@ -36,4 +36,4 @@ jobs:
           CONSUMER_SECRET: ${{ secrets.MC_CONSUMER_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.MC_X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.MC_X_ACCESS_TOKEN_SECRET }}
-        run: python moonchill_post_x.py
+        run: python Auto_Post_Moonchill.py
