@@ -359,6 +359,36 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     
     bot_ui.print_end()
 
+def run_manual_workflow(bot_name, bot_data, hashtag_pool):
+    bot_ui.print_header(bot_name)
+
+    try:
+        # 1. เริ่มต้นระบบและโหลด Config
+        # (รวม get_thai_time, get_context, ตั้งค่า Limit ไว้ในนี้)
+        session = initialize_bot_session(bot_data, hashtag_pool)
+
+        # 2. แสดงสถานะระบบ [System Check]
+        perform_system_check(session)
+
+        # 5. เชื่อมต่อ Twitter API
+        client, api_v1 = connect_twitter_services()
+
+        # 6. เตรียมข้อความและแสดงตัวอย่าง
+        message = generate_and_preview_content(session)
+
+        # 7. จัดการอัปโหลดรูปภาพ (ถ้ามี) [Step 3]
+        media_ids = handle_media_uploads(api_v1, session)
+
+        # 8. โพสต์ทวีตจริง [Step 4]
+        publish_tweet_to_x(client, message, media_ids)
+
+    except Exception as e:
+        handle_critical_error(e)
+    
+    bot_ui.print_end()
+
+
+
 
 
 
