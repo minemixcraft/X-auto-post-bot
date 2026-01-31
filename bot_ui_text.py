@@ -1,6 +1,6 @@
 # ======================================================
-# 🎨 ไฟล์: bot_ui.py
-# (Custom UI: d[o_0]b Style with Steps [1/4])
+# 🎨 ไฟล์: bot_ui_text.py
+# (Custom UI: d[o_0]b Style with Steps [1/4] & Budget Analysis)
 # ======================================================
 
 def format_time_str(total_seconds):
@@ -42,26 +42,17 @@ def print_error(message):
 # ======================================================
 
 def print_system_check(context_name, target_time, current_date, current_time, upload_image, msg_count, tag_count, max_delay):
-    """
-    แสดง System Check แบบละเอียด (เพิ่ม Current Time)
-    """
     print_section_header("⚙️ [SYSTEM CHECK]")
-    
-    # กลุ่มบริบทเวลา
     print_info("Time Zone", "Asia/Bangkok (UTC+7)")
     print_info("Context", context_name)
     print_info("Target Time", target_time)
     print_info("Current Date", current_date)
-    print_info("Current Time", current_time) # 🔥 เพิ่มบรรทัดนี้
+    print_info("Current Time", current_time)
     print_info("Has Image?", 'Yes' if upload_image else 'No')
-    
-    print("") # เว้นบรรทัด
-    
-    # กลุ่มข้อมูล
+    print("") 
     print_info("Msg Loaded", f"{msg_count} items")
     print_info("Tag Pool", f"{tag_count} tags")
     print_info("Max Delay", f"{max_delay} mins")
-    
     print_closer()
 
 # --- STEP 1: WAITING ---
@@ -71,16 +62,12 @@ def print_waiting_header():
 def print_waiting_bar(percent, remaining_seconds, is_finished=False, custom_status=None):
     bar_length = 25
     filled_length = int(bar_length * percent // 100)
-    
     if is_finished:
-        # ไม่ต้อง print อะไรเพิ่มตอนจบ เพราะเดี๋ยว bot_utils จะเรียก closer ปิดท้ายเอง
         pass 
     else:
         bar_char = '▒'
         status_text = custom_status if custom_status else "Waiting..."
         time_str = format_time_str(remaining_seconds)
-        
-        # แสดง Bar
         bar = bar_char * filled_length + '░' * (bar_length - filled_length)
         print(f"   {bar} {percent}% | ETA: {time_str} | {status_text}")
 
@@ -88,8 +75,24 @@ def print_waiting_bar(percent, remaining_seconds, is_finished=False, custom_stat
 def print_execution_header():
     print_section_header("  [EXECUTION START] [2/4]")
 
+def print_time_budget(limit_min, elapsed_min, remaining_min, config_delay, safe_delay):
+    """แสดงตารางวิเคราะห์เวลา (Time Budget Analysis)"""
+    # ไม่ต้องมี Header ใหญ่ซ้ำ เพราะเรียกต่อจาก execution_header
+    print(" 📊 [TIME BUDGET ANALYSIS]")
+    print(f"   ➤ Total Runtime   : {limit_min} mins (Safety Limit)")
+    print(f"   ➤ Time Elapsed    : {elapsed_min:.1f} mins (Used in Wait)")
+    print(f"   ➤ Remaining       : {remaining_min:.1f} mins")
+    print(f"   ➤ Config Delay    : {config_delay} mins")
+    
+    if safe_delay < config_delay:
+        print(f"   ➤ Safe Delay      : {int(safe_delay)} mins ⚠️ (Adjusted)")
+    else:
+        print(f"   ➤ Safe Delay      : {int(safe_delay)} mins (OK)")
+    
+    print(" " + "-"*50)
+
 def print_strategy_info(wait_minutes, wait_seconds):
-    print_info("Strategy", f"Random Delay ({wait_minutes}m {wait_seconds}s)")
+    print(f"   ➤ Strategy        : Random Delay ({wait_minutes}m {wait_seconds}s)")
     print("   ... (Sleeping) ...")
 
 # --- PREVIEW ---
@@ -119,7 +122,7 @@ def print_upload_item(filename, media_id):
 def print_upload_error(filename, error):
     print(f"   ❌ Error {filename} : {error}")
 
-# --- STEP 4: POSE (POST) ---
+# --- STEP 4: POSE ---
 def print_pose_header():
     print_section_header("  [POSE]       [4/4]")
 
