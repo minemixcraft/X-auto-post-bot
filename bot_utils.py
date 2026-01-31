@@ -200,7 +200,13 @@ def process_posting(client, message, media_ids):
     
     try:
         response = client.create_tweet(text=message, media_ids=media_ids)
-        bot_ui.print_post_success(response.data['id'])
+        
+        # 🔥 ดึงเวลาปัจจุบัน (ไทย) มาแสดงผล
+        post_time = get_thai_time().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # ส่ง tweet_id และ post_time ไปให้ UI
+        bot_ui.print_post_success(response.data['id'], post_time)
+        
     except Exception as e:
         print(f"   ❌ Failed to tweet: {e}")
         
@@ -268,3 +274,4 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         print("!"*50)
     
     bot_ui.print_end()
+
