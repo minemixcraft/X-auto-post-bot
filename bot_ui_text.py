@@ -7,7 +7,7 @@
 # ⚙️ PROGRESS BAR SETTINGS (เลือกสไตล์ที่ชอบได้ตรงนี้)
 # ------------------------------------------------------
 # เปลี่ยนค่าตรงนี้เป็น: "BLOCK", "SHADE", "RECT", "CIRCLE", "VERTICAL", "SQUARE"
-ACTIVE_STYLE = "SHADE" 
+ACTIVE_STYLE = "RECT" 
 
 BAR_STYLES = {
     "BLOCK":    {"fill": "█", "empty": "░"},  # █████████░░░░
