@@ -1,7 +1,22 @@
 # ======================================================
 # 🎨 ไฟล์: bot_ui.py (ASCII Art Version)
-# (Compatible Interface with bot_ui_text.py)
+# (Updated with Bar Styles & 100% Fix)
 # ======================================================
+
+# ------------------------------------------------------
+# ⚙️ PROGRESS BAR SETTINGS
+# ------------------------------------------------------
+ACTIVE_STYLE = "RECT" 
+
+BAR_STYLES = {
+    "BLOCK":    {"fill": "█", "empty": "░"},
+    "SHADE":    {"fill": "▒", "empty": "░"},
+    "RECT":     {"fill": "▰", "empty": "▱"},
+    "CIRCLE":   {"fill": "o", "empty": "."},
+    "VERTICAL": {"fill": "▮", "empty": "▯"},
+    "SQUARE":   {"fill": "■", "empty": "□"},
+}
+# ------------------------------------------------------
 
 ASCII_ART = {
     "HEADER": """
@@ -97,16 +112,26 @@ def print_waiting_header():
     print_section("WAITING")
 
 def print_waiting_bar(percent, remaining_seconds, is_finished=False, custom_status=None):
+    # 1. เลือกสไตล์
+    style = BAR_STYLES.get(ACTIVE_STYLE, BAR_STYLES["RECT"])
+    fill_char = style["fill"]
+    empty_char = style["empty"]
     bar_length = 25
-    filled_length = int(bar_length * percent // 100)
+
+    # 2. ตั้งค่า 100%
     if is_finished:
-        pass
+        percent = 100
+        remaining_seconds = 0
+        status_text = custom_status if custom_status else "Target Reached!"
     else:
-        bar_char = '▒'
         status_text = custom_status if custom_status else "Waiting..."
-        time_str = format_time_str(remaining_seconds)
-        bar = bar_char * filled_length + '░' * (bar_length - filled_length)
-        print(f"   {bar} {percent}% | ETA: {time_str} | {status_text}")
+
+    # 3. แสดงผล
+    filled_length = int(bar_length * percent // 100)
+    bar = fill_char * filled_length + empty_char * (bar_length - filled_length)
+    time_str = format_time_str(remaining_seconds)
+    
+    print(f"   {bar} {percent}% | ETA: {time_str} | {status_text}")
 
 def print_execution_header():
     print_section("EXECUTION")
@@ -114,7 +139,12 @@ def print_execution_header():
 def print_time_budget(limit_min, elapsed_min, remaining_min, config_delay, safe_delay):
     print("   [TIME BUDGET ANALYSIS]")
     print(f"   ➤ Limit: {limit_min}m | Used: {elapsed_min:.1f}m | Left: {remaining_min:.1f}m")
-    print(f"   ➤ Config: {config_delay}m -> Safe: {int(safe_delay)}m")
+    
+    if safe_delay < config_delay:
+        print(f"   ➤ Config: {config_delay}m -> Safe: {int(safe_delay)}m ⚠️ (Adjusted)")
+    else:
+        print(f"   ➤ Config: {config_delay}m -> Safe: {int(safe_delay)}m (OK)")
+        
     print("   " + "-"*30)
 
 def print_strategy_info(wait_minutes, wait_seconds):
