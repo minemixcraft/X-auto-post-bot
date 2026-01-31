@@ -1,0 +1,27 @@
+name: Manual_Post_Moonchill
+on:
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+          
+      - run: pip install tweepy
+      
+      - name: Run MoonChill Script
+        env:
+          PYTHONUNBUFFERED: 1
+          # ใช้ Secret ชุด MC (MoonChill)
+          CONSUMER_KEY: ${{ secrets.MC_CONSUMER_KEY }}
+          CONSUMER_SECRET: ${{ secrets.MC_CONSUMER_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.MC_X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.MC_X_ACCESS_TOKEN_SECRET }}
+        run: python Manual_Post_Moonchill.py
