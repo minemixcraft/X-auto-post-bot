@@ -38,3 +38,4 @@ jobs:
           X_ACCESS_TOKEN_SECRET: ${{ secrets.GH_X_ACCESS_TOKEN_SECRET }}
         # ไฟล์ Python อยู่หน้าแรก เรียกได้เลย
         run: python Auto_Post_GreenHaven.py
+
