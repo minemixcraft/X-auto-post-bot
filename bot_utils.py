@@ -211,67 +211,152 @@ def process_posting(client, message, media_ids):
         print(f"   ❌ Failed to tweet: {e}")
         
     bot_ui.print_closer()
-
 # ======================================================
-# 4. ORCHESTRATOR (ผู้คุมวง - เรียกใช้ Task ตามลำดับ)
+# 3. HIGH-LEVEL TASKS (SRP Wrappers)
+# ======================================================
+
+def initialize_bot_session(bot_data, hashtag_pool):
+    """รวบรวมตัวแปรที่จำเป็นต้องใช้ตลอด Session ไว้ใน Dictionary เดียว"""
+    start_time = get_thai_time()
+    context = get_schedule_context(start_time.hour)
+    
+    return {
+        "start_time": start_time,
+        "workflow_start": time.time(),
+        "max_runtime_min": 110, # GitHub Limit Safety
+        "context": context,
+        "bot_data": bot_data,
+        "hashtag_pool": hashtag_pool
+    }
+
+def perform_system_check(session):
+    """แสดงผล System Check"""
+    ctx = session['context']
+    bot_ui.print_system_check(
+        context_name=ctx['name'], 
+        target_time=f"{ctx['target_hour']}:00",
+        current_date=session['start_time'].strftime("%Y-%m-%d"),
+        current_time=session['start_time'].strftime("%H:%M:%S"),
+        upload_image=ctx['upload_image'],
+        msg_count=len(session['bot_data'].get('messages', [])),
+        tag_count=len(session['hashtag_pool']),
+        max_delay=ctx['max_wait_min']
+    )
+
+def wait_until_target_time(session):
+    """รอจนกว่าจะถึงเวลาเป้าหมาย"""
+    # เรียกใช้ process_waiting_for_target เดิมที่มีอยู่แล้ว
+    process_waiting_for_target(session['context']['target_hour'])
+
+def execute_safety_delay_strategy(session):
+    """
+    [Core Logic] คำนวณ Time Budget และสั่ง Sleep
+    รวมการคำนวณ + การแสดงผล Header + การ Sleep ไว้ที่เดียว
+    """
+    # 1. คำนวณเวลา
+    elapsed_min, remaining_min = calculate_time_budget(
+        session['workflow_start'], 
+        session['max_runtime_min']
+    )
+    
+    # 2. หา Safe Delay
+    config_delay = session['context']['max_wait_min']
+    safe_delay = calculate_safe_delay(config_delay, remaining_min)
+
+    # 3. แสดงผลตารางวิเคราะห์
+    bot_ui.print_execution_header()
+    bot_ui.print_time_budget(
+        session['max_runtime_min'], 
+        elapsed_min, 
+        remaining_min, 
+        config_delay, 
+        safe_delay
+    )
+
+    # 4. สั่งนอนหลับ (ใช้ process_random_delay ที่มีอยู่แล้ว)
+    if safe_delay > 0:
+        # ใช้ Logic สุ่มเวลาจาก process_random_delay เดิม
+        # แต่เราส่ง safe_delay ที่คำนวณแล้วเข้าไป
+        wait_sec = random.randint(60, int(safe_delay * 60))
+        bot_ui.print_strategy_info(wait_sec // 60, wait_sec % 60)
+        sleep_with_progress_bar(wait_sec, status_msg="Sleeping...", end_msg="Waking Up!")
+    else:
+        print("   ➤ Skipped Random Delay (Budget tight or Config 0)")
+    
+    bot_ui.print_closer()
+
+def connect_twitter_services():
+    """เชื่อมต่อ API"""
+    return get_twitter_api()
+
+def generate_and_preview_content(session):
+    """เตรียมข้อความและแสดง Preview"""
+    ctx = session['context']
+    message = prepare_tweet_content(
+        ctx['msg_index'], 
+        session['bot_data'].get("messages", []), 
+        session['hashtag_pool']
+    )
+    bot_ui.print_preview_box(message)
+    return message
+
+def handle_media_uploads(api_v1, session):
+    """จัดการอัปโหลดรูป (เช็คเงื่อนไขให้เอง)"""
+    ctx = session['context']
+    bot_data = session['bot_data']
+    
+    media_ids = []
+    if ctx['upload_image'] and "images" in bot_data:
+        media_ids = process_image_uploads(api_v1, bot_data["images"])
+    
+    return media_ids
+
+def publish_tweet_to_x(client, message, media_ids):
+    """โพสต์ทวีต"""
+    process_posting(client, message, media_ids or None)
+
+def handle_critical_error(e):
+    """จัดการ Error"""
+    print("\n" + "!"*50)
+    print(f"❌ CRITICAL SYSTEM ERROR: {e}")
+    print("!"*50)
+# ======================================================
+# 4. ORCHESTRATOR (MAIN WORKFLOW) - SRP STYLE
 # ======================================================
 
 def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     bot_ui.print_header(bot_name)
-    
-    # จับเวลาเริ่ม Workflow (Limit 110 นาที)
-    WORKFLOW_START = time.time()
-    MAX_RUNTIME_MIN = 110 
 
     try:
-        # 1. เตรียมข้อมูล
-        start_time = get_thai_time()
-        context = get_schedule_context(start_time.hour)
-        
-        # 2. ตรวจสอบระบบ [System Check]
-        process_system_check(context, start_time, bot_data, hashtag_pool)
+        # 1. เริ่มต้นระบบและโหลด Config
+        # (รวม get_thai_time, get_context, ตั้งค่า Limit ไว้ในนี้)
+        session = initialize_bot_session(bot_data, hashtag_pool)
 
-        # 3. รอเวลา [Step 1]
-        process_waiting_for_target(context['target_hour'])
+        # 2. แสดงสถานะระบบ [System Check]
+        perform_system_check(session)
 
-        # 4. วิเคราะห์เวลา (Budget Analysis)
-        elapsed_min, remaining_min = calculate_time_budget(WORKFLOW_START, MAX_RUNTIME_MIN)
-        safe_delay_min = calculate_safe_delay(context['max_wait_min'], remaining_min)
-        
-        # แสดงตารางวิเคราะห์
-        # (ต้องปริ้น Header Execution ก่อน เพื่อให้ตารางอยู่ใน Section 2)
-        bot_ui.print_execution_header() 
-        bot_ui.print_time_budget(MAX_RUNTIME_MIN, elapsed_min, remaining_min, context['max_wait_min'], safe_delay_min)
-        
-        # 5. สุ่มเวลาหน่วง [Step 2]
-        # (ฟังก์ชันนี้จะปริ้น Header ซ้ำเล็กน้อย ถ้าไม่ชอบให้ไปแก้ใน process_random_delay เอา Header ออก)
-        # แต่เพื่อความ SRP ให้ process_random_delay จัดการการรออย่างเดียวดีกว่า
-        if safe_delay_min > 0:
-            wait_sec = random.randint(60, int(safe_delay_min * 60))
-            bot_ui.print_strategy_info(wait_sec // 60, wait_sec % 60)
-            sleep_with_progress_bar(wait_sec, status_msg="Sleeping...", end_msg="Waking Up!")
-        else:
-            print("   ➤ Skipped Random Delay (Budget tight or Config 0)")
-        bot_ui.print_closer()
+        # 3. รอเวลาเป้าหมาย [Step 1]
+        wait_until_target_time(session)
 
-        # 6. เตรียม Content & API
-        client, api_v1 = get_twitter_api()
-        message = prepare_tweet_content(context['msg_index'], bot_data.get("messages", []), hashtag_pool)
-        
-        bot_ui.print_preview_box(message)
+        # 4. คำนวณและหน่วงเวลาเพื่อความปลอดภัย [Step 2]
+        # (ซ่อน Logic คำนวณ Budget และการสุ่มเวลาไว้ในนี้ทั้งหมด)
+        execute_safety_delay_strategy(session)
 
-        # 7. อัปโหลดรูป [Step 3]
-        media_ids = []
-        if context['upload_image'] and "images" in bot_data:
-            media_ids = process_image_uploads(api_v1, bot_data["images"])
+        # 5. เชื่อมต่อ Twitter API
+        client, api_v1 = connect_twitter_services()
 
-        # 8. โพสต์ [Step 4]
-        process_posting(client, message, media_ids or None)
+        # 6. เตรียมข้อความและแสดงตัวอย่าง
+        message = generate_and_preview_content(session)
+
+        # 7. จัดการอัปโหลดรูปภาพ (ถ้ามี) [Step 3]
+        media_ids = handle_media_uploads(api_v1, session)
+
+        # 8. โพสต์ทวีตจริง [Step 4]
+        publish_tweet_to_x(client, message, media_ids)
 
     except Exception as e:
-        print("\n" + "!"*50)
-        print(f"❌ CRITICAL SYSTEM ERROR: {e}")
-        print("!"*50)
+        handle_critical_error(e)
     
     bot_ui.print_end()
+
 
