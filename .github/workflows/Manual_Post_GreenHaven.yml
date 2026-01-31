@@ -1,0 +1,40 @@
+name: Manual_Post_GreenHaven
+on:
+  schedule:
+    # 1. รอบเช้า (เป้า 08:00 ไทย) -> ตื่น 07:00 ไทย
+    # สูตร: 07:00 - 7 = 00:00 UTC
+    - cron: '0 0 * * *'
+    
+    # 2. รอบบ่าย (เป้า 12:00 ไทย) -> ตื่น 11:00 ไทย
+    # สูตร: 11:00 - 7 = 04:00 UTC
+    - cron: '0 4 * * *'
+    
+    # 3. รอบเย็น (เป้า 17:00 ไทย) -> ตื่น 16:00 ไทย
+    # สูตร: 16:00 - 7 = 09:00 UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch:      # ปุ่มกดรันมือ
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+          
+      - run: pip install tweepy
+      
+      - name: Run GreenHaven Script
+        env:
+          PYTHONUNBUFFERED: 1
+          # ใช้ Secret ชุด GH (GreenHaven)
+          CONSUMER_KEY: ${{ secrets.GH_CONSUMER_KEY }}
+          CONSUMER_SECRET: ${{ secrets.GH_CONSUMER_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.GH_X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.GH_X_ACCESS_TOKEN_SECRET }}
+        # ไฟล์ Python อยู่หน้าแรก เรียกได้เลย
+        run: python Manual_Post_GreenHaven.py
