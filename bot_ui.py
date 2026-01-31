@@ -179,10 +179,12 @@ def print_upload_error(filename, error):
 def print_pose_header():
     # ใช้ Art ของ EXECUTION เพราะไม่มี POSE
     print_section("EXECUTION") 
-
-def print_post_success(tweet_id):
+    
+def print_post_success(tweet_id, timestamp):
+    """เพิ่มการรับค่า timestamp"""
     print("\n       ✅ [TWEET POSTED SUCCESSFULLY]")
     print(f"   ➤ Tweet ID      : {tweet_id}")
+    print(f"   ➤ Timestamp     : {timestamp}")
 
 def print_end():
     print_section("COMPLETED")
