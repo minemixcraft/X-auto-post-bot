@@ -1,4 +1,4 @@
-name: Bot - GreenHaven
+name: Auto_Post_GreenHaven
 on:
   schedule:
     # 1. รอบเช้า (เป้า 08:00 ไทย) -> ตื่น 07:00 ไทย
@@ -37,4 +37,4 @@ jobs:
           X_ACCESS_TOKEN: ${{ secrets.GH_X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.GH_X_ACCESS_TOKEN_SECRET }}
         # ไฟล์ Python อยู่หน้าแรก เรียกได้เลย
-        run: python GreenHaven_post_x.py
+        run: python Auto_Post_GreenHaven.py
