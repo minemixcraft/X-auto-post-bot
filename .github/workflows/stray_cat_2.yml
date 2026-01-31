@@ -1,4 +1,4 @@
-name: Bot - Stray Cat 2
+name: Auto_Post_Stray_cat_2
 
 on:
   schedule:
@@ -37,4 +37,4 @@ jobs:
           CONSUMER_SECRET: ${{ secrets.SC2_CONSUMER_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.SC2_X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.SC2_X_ACCESS_TOKEN_SECRET }}
-        run: python Stray_cat_2_autopost_x.py
+        run: python Auto_Post_Stray_cat_2.py
