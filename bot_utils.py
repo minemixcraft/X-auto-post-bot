@@ -340,7 +340,7 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
 
         # 4. คำนวณและหน่วงเวลาเพื่อความปลอดภัย [Step 2]
         # (ซ่อน Logic คำนวณ Budget และการสุ่มเวลาไว้ในนี้ทั้งหมด)
-        # execute_safety_delay_strategy(session)
+        execute_safety_delay_strategy(session)
 
         # 5. เชื่อมต่อ Twitter API
         client, api_v1 = connect_twitter_services()
@@ -358,6 +358,7 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         handle_critical_error(e)
     
     bot_ui.print_end()
+
 
 
 
