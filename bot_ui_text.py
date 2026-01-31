@@ -153,10 +153,12 @@ def print_upload_error(filename, error):
 # --- STEP 4: POSE ---
 def print_pose_header():
     print_section_header("  [POSE]       [4/4]")
-
-def print_post_success(tweet_id):
+    
+def print_post_success(tweet_id, timestamp):
+    """เพิ่มการรับค่า timestamp"""
     print("\n       ✅ [TWEET POSTED SUCCESSFULLY]")
     print(f"   ➤ Tweet ID      : {tweet_id}")
+    print(f"   ➤ Timestamp     : {timestamp}")
 
 # --- END ---
 def print_end():
