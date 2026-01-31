@@ -9,16 +9,20 @@ import bot_ui_text as bot_ui
 # import bot_ui as bot_ui 
 
 # ======================================================
-# 1. TIME & SCHEDULE
+# 1. PURE LOGIC & CALCULATIONS (คำนวณอย่างเดียว ไม่มี Side Effect)
 # ======================================================
+
 def get_thai_time():
+    """คืนค่าเวลาปัจจุบันในไทย"""
     return datetime.now(timezone.utc) + timedelta(hours=7)
 
 def get_seconds_until_target(now, target_hour):
+    """คำนวณวินาทีที่ต้องรอจนถึงเป้าหมาย"""
     target_time = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)
     return (target_time - now).total_seconds()
 
 def get_schedule_context(current_hour):
+    """คืนค่า Config ของรอบเวลาตามชั่วโมงปัจจุบัน"""
     if current_hour < 10:
         return {"name": "Morning Round", "msg_index": 0, "max_wait_min": 45, "target_hour": 8, "upload_image": True}
     elif current_hour < 15:
@@ -26,32 +30,119 @@ def get_schedule_context(current_hour):
     else:
         return {"name": "Evening Round", "msg_index": 2, "max_wait_min": 90, "target_hour": 17, "upload_image": False}
 
+def calculate_time_budget(start_time, max_runtime_min):
+    """คำนวณเวลาที่ใช้ไปและเวลาที่เหลือ (Time Budget)"""
+    elapsed_sec = time.time() - start_time
+    remaining_sec = (max_runtime_min * 60) - elapsed_sec
+    
+    elapsed_min = elapsed_sec / 60
+    remaining_min = remaining_sec / 60
+    
+    return elapsed_min, remaining_min
+
+def calculate_safe_delay(config_delay_min, remaining_min):
+    """คำนวณเวลา Random Delay ที่ปลอดภัย (ไม่เกินเวลาที่เหลือ)"""
+    if remaining_min <= 0:
+        return 0
+    
+    # เลือกค่าที่น้อยกว่า ระหว่าง Config กับ เวลาที่เหลือ
+    safe_delay = min(config_delay_min, remaining_min)
+    
+    # ถ้าเหลือน้อยกว่า 1 นาที ให้ตัดเป็น 0 ไปเลยเพื่อความชัวร์
+    return safe_delay if safe_delay >= 1 else 0
+
+def prepare_tweet_content(msg_index, messages_list, hashtag_pool):
+    """เตรียมข้อความและ Hashtag"""
+    if not messages_list: return ""
+    if msg_index >= len(messages_list): msg_index = 0
+    
+    base_msg = messages_list[msg_index].strip() + "\n\n"
+    tags = list(set(hashtag_pool))
+    random.shuffle(tags)
+    
+    final_msg = base_msg
+    for t in tags:
+        if len(final_msg + t + " ") <= 280:
+            final_msg += t + " "
+        else:
+            break
+            
+    return final_msg.strip()
+
+def filter_existing_images(image_paths):
+    """กรองเฉพาะไฟล์รูปที่มีอยู่จริง"""
+    if not image_paths: return []
+    return [img for img in image_paths if os.path.exists(img)]
+
 # ======================================================
-# 2. LOGIC: WAIT & DELAY
+# 2. LOW-LEVEL ACTIONS (ทำงานย่อยๆ 1 อย่าง)
 # ======================================================
-def execute_sleep_with_progress(total_wait_seconds):
-    effective_wait = max(0, total_wait_seconds - 60)
-    if effective_wait < 10: 
+
+def get_twitter_api():
+    """เชื่อมต่อ API"""
+    keys = [os.getenv("CONSUMER_KEY"), os.getenv("CONSUMER_SECRET"), os.getenv("X_ACCESS_TOKEN"), os.getenv("X_ACCESS_TOKEN_SECRET")]
+    if not all(keys): raise ValueError("Missing API Keys")
+    
+    client = tweepy.Client(consumer_key=keys[0], consumer_secret=keys[1], access_token=keys[2], access_token_secret=keys[3])
+    auth = tweepy.OAuth1UserHandler(keys[0], keys[1], keys[2], keys[3])
+    api_v1 = tweepy.API(auth)
+    return client, api_v1
+
+def sleep_with_progress_bar(seconds, start_msg=None, status_msg="Waiting...", end_msg=None):
+    """ฟังก์ชันหลับพร้อมแสดง Progress Bar (ใช้ซ้ำได้ทั้ง Wait และ Delay)"""
+    if seconds <= 0: return
+
+    effective_wait = max(0, seconds - 60) # Buffer 60 วิ
+    if effective_wait < 10:
         time.sleep(effective_wait)
         return
 
+    if start_msg:
+        print(f"   {start_msg}: {bot_ui.format_time_str(effective_wait)} remaining.")
+
     chunk_size = effective_wait / 10
-    print(f"   Timer Started: {bot_ui.format_time_str(effective_wait)} remaining.")
-    
     for i in range(1, 11):
         time.sleep(chunk_size)
         percent = i * 10
         remaining = effective_wait - (chunk_size * i)
         is_done = (i == 10)
-        bot_ui.print_waiting_bar(percent, remaining, is_finished=is_done)
+        
+        current_status = end_msg if (is_done and end_msg) else status_msg
+        bot_ui.print_waiting_bar(percent, remaining, is_finished=is_done, custom_status=current_status)
 
-def wait_for_schedule_start(target_hour):
-    # [STEP 1]
+def upload_single_file(api_v1, filepath):
+    """อัปโหลดไฟล์เดียว และคืนค่า Media ID"""
+    try:
+        upload = api_v1.media_upload(filename=filepath)
+        bot_ui.print_upload_item(os.path.basename(filepath), upload.media_id)
+        return upload.media_id
+    except Exception as e:
+        bot_ui.print_upload_error(filepath, e)
+        return None
+
+# ======================================================
+# 3. HIGH-LEVEL TASKS (รวม Action มาทำงานเป็น Step)
+# ======================================================
+
+def process_system_check(context, start_time, bot_data, hashtag_pool):
+    """[STEP 0] แสดงผลตรวจสอบระบบ"""
+    bot_ui.print_system_check(
+        context_name=context['name'], 
+        target_time=f"{context['target_hour']}:00",
+        current_date=start_time.strftime("%Y-%m-%d"),
+        current_time=start_time.strftime("%H:%M:%S"),
+        upload_image=context['upload_image'],
+        msg_count=len(bot_data.get('messages', [])),
+        tag_count=len(hashtag_pool),
+        max_delay=context['max_wait_min']
+    )
+
+def process_waiting_for_target(target_hour):
+    """[STEP 1] กระบวนการรอเวลาเป้าหมาย"""
     bot_ui.print_waiting_header()
     
-    waited_seconds = 0
-    start_wait = time.time() # จับเวลาเริ่มรอ
-
+    start_wait_time = time.time()
+    
     while True:
         now = get_thai_time()
         if now.hour >= target_hour:
@@ -59,155 +150,117 @@ def wait_for_schedule_start(target_hour):
         
         wait_seconds = get_seconds_until_target(now, target_hour)
         if wait_seconds > 0:
-            execute_sleep_with_progress(wait_seconds)
+            sleep_with_progress_bar(wait_seconds, start_msg="Timer Started", status_msg="Waiting...")
             break 
         else:
             time.sleep(30)
-    
+            
     bot_ui.print_closer()
-    
-    # คืนค่าเวลาที่ใช้ไปทั้งหมดในช่วง Wait
-    waited_seconds = time.time() - start_wait
-    return waited_seconds
+    # คืนค่าเวลาที่ใช้รอไปจริง (วินาที)
+    return time.time() - start_wait_time
 
-def apply_random_delay(max_wait_min):
-    # ฟังก์ชันนี้รับค่า max_wait_min ที่ถูกคำนวณมาอย่างปลอดภัยแล้วจาก Main Flow
+def process_random_delay(max_wait_min):
+    """[STEP 2] กระบวนการสุ่มเวลาหน่วง (Random Delay)"""
+    bot_ui.print_execution_header() # ปริ้นหัวข้อก่อน (อาจจะปริ้น Budget ตามมาทีหลังใน Main)
+    
+    # หมายเหตุ: ใน Main เราจะปริ้น Budget ก่อน แล้วค่อยเรียกฟังก์ชันนี้เพื่อ sleep
     if max_wait_min > 0:
-        # [STEP 2]
-        bot_ui.print_execution_header()
-        
         wait_sec = random.randint(60, int(max_wait_min * 60))
         bot_ui.print_strategy_info(wait_sec // 60, wait_sec % 60)
         
-        chunk_size = wait_sec / 10
-        for i in range(1, 11):
-            time.sleep(chunk_size)
-            percent = i * 10
-            remaining = max(0, wait_sec - (chunk_size * i))
-            is_done = (i == 10)
-            status = "Waking Up!" if is_done else "Sleeping..."
-            bot_ui.print_waiting_bar(percent, remaining, is_finished=is_done, custom_status=status)
+        sleep_with_progress_bar(
+            wait_sec, 
+            status_msg="Sleeping...", 
+            end_msg="Waking Up!"
+        )
+    else:
+        print("   ➤ Strategy        : No Delay (Skipped)")
         
-        bot_ui.print_closer()
+    bot_ui.print_closer()
 
-# ======================================================
-# 3. LOGIC: CONTENT & API
-# ======================================================
-def prepare_message(msg_index, messages_list, hashtag_pool):
-    if msg_index >= len(messages_list): msg_index = 0
-    base_msg = messages_list[msg_index].strip() + "\n\n"
-    tags = list(set(hashtag_pool))
-    random.shuffle(tags)
-    final_msg = base_msg
-    for t in tags:
-        if len(final_msg + t + " ") <= 280: final_msg += t + " "
-        else: break 
-    return final_msg.strip()
-
-def get_twitter_client():
-    keys = [os.getenv("CONSUMER_KEY"), os.getenv("CONSUMER_SECRET"), os.getenv("X_ACCESS_TOKEN"), os.getenv("X_ACCESS_TOKEN_SECRET")]
-    if not all(keys): raise ValueError("Missing API Keys")
-    return tweepy.Client(consumer_key=keys[0], consumer_secret=keys[1], access_token=keys[2], access_token_secret=keys[3]), tweepy.API(tweepy.OAuth1UserHandler(keys[0], keys[1], keys[2], keys[3]))
-
-def upload_images(api_v1, image_paths):
-    # [STEP 3]
-    media_ids = []
+def process_image_uploads(api_v1, image_paths):
+    """[STEP 3] กระบวนการอัปโหลดรูปภาพทั้งหมด"""
     bot_ui.print_upload_header()
     
-    valid_images = [img for img in image_paths if os.path.exists(img)]
+    valid_images = filter_existing_images(image_paths)
     bot_ui.print_media_found(len(valid_images))
-
+    
+    media_ids = []
     for img_path in valid_images:
-        try:
-            upload = api_v1.media_upload(filename=img_path)
-            media_ids.append(upload.media_id)
-            bot_ui.print_upload_item(os.path.basename(img_path), upload.media_id)
-        except Exception as e:
-            bot_ui.print_upload_error(img_path, e)
+        mid = upload_single_file(api_v1, img_path)
+        if mid:
+            media_ids.append(mid)
             
     bot_ui.print_closer()
     return media_ids
 
-def post_tweet(client, message, media_ids=None):
-    # [STEP 4]
+def process_posting(client, message, media_ids):
+    """[STEP 4] กระบวนการโพสต์ทวีต"""
     bot_ui.print_pose_header()
     
-    if not media_ids: media_ids = None 
     try:
         response = client.create_tweet(text=message, media_ids=media_ids)
         bot_ui.print_post_success(response.data['id'])
     except Exception as e:
         print(f"   ❌ Failed to tweet: {e}")
-    
+        
     bot_ui.print_closer()
 
 # ======================================================
-# 4. MAIN FLOW (Safety Logic Added)
+# 4. ORCHESTRATOR (ผู้คุมวง - เรียกใช้ Task ตามลำดับ)
 # ======================================================
+
 def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     bot_ui.print_header(bot_name)
     
-    # 🔥 จับเวลาเริ่ม Workflow (GitHub Limit 2 ชั่วโมง)
-    workflow_start_time = time.time()
-    MAX_RUNTIME_SEC = 110 * 60  # ตั้งเป้าจบใน 110 นาที (เผื่อ Buffer 10 นาที)
+    # จับเวลาเริ่ม Workflow (Limit 110 นาที)
+    WORKFLOW_START = time.time()
+    MAX_RUNTIME_MIN = 110 
 
     try:
+        # 1. เตรียมข้อมูล
         start_time = get_thai_time()
         context = get_schedule_context(start_time.hour)
         
-        # SYSTEM CHECK
-        bot_ui.print_system_check(
-            context_name=context['name'], 
-            target_time=f"{context['target_hour']}:00",
-            current_date=start_time.strftime("%Y-%m-%d"),
-            current_time=start_time.strftime("%H:%M:%S"),
-            upload_image=context['upload_image'],
-            msg_count=len(bot_data['messages']),
-            tag_count=len(hashtag_pool),
-            max_delay=context['max_wait_min']
-        )
+        # 2. ตรวจสอบระบบ [System Check]
+        process_system_check(context, start_time, bot_data, hashtag_pool)
 
-        # 1. รอเวลาตามเป้าหมาย (Wait System)
-        # รับค่ากลับมาว่าใช้เวลาไปเท่าไหร่
-        waited_sec = wait_for_schedule_start(context['target_hour'])
+        # 3. รอเวลา [Step 1]
+        process_waiting_for_target(context['target_hour'])
 
-        # 2. คำนวณเวลาที่เหลือสำหรับ Random Delay
-        # เวลาที่ผ่านไปแล้วทั้งหมด
-        elapsed_total = time.time() - workflow_start_time
+        # 4. วิเคราะห์เวลา (Budget Analysis)
+        elapsed_min, remaining_min = calculate_time_budget(WORKFLOW_START, MAX_RUNTIME_MIN)
+        safe_delay_min = calculate_safe_delay(context['max_wait_min'], remaining_min)
         
-        # เวลาที่เหลือให้ใช้ได้
-        remaining_budget_sec = MAX_RUNTIME_SEC - elapsed_total
+        # แสดงตารางวิเคราะห์
+        # (ต้องปริ้น Header Execution ก่อน เพื่อให้ตารางอยู่ใน Section 2)
+        bot_ui.print_execution_header() 
+        bot_ui.print_time_budget(MAX_RUNTIME_MIN, elapsed_min, remaining_min, context['max_wait_min'], safe_delay_min)
         
-        if remaining_budget_sec <= 0:
-            print("⚠️ Time Limit Exceeded! Skipping Random Delay.")
-            safe_max_delay_min = 0
+        # 5. สุ่มเวลาหน่วง [Step 2]
+        # (ฟังก์ชันนี้จะปริ้น Header ซ้ำเล็กน้อย ถ้าไม่ชอบให้ไปแก้ใน process_random_delay เอา Header ออก)
+        # แต่เพื่อความ SRP ให้ process_random_delay จัดการการรออย่างเดียวดีกว่า
+        if safe_delay_min > 0:
+            wait_sec = random.randint(60, int(safe_delay_min * 60))
+            bot_ui.print_strategy_info(wait_sec // 60, wait_sec % 60)
+            sleep_with_progress_bar(wait_sec, status_msg="Sleeping...", end_msg="Waking Up!")
         else:
-            # แปลงวินาทีที่เหลือ เป็นนาที
-            remaining_budget_min = remaining_budget_sec / 60
-            
-            # เลือกค่าที่น้อยกว่า ระหว่าง "Config เดิม" กับ "เวลาที่เหลือจริง"
-            # เช่น Config ตั้งไว้ 90 นาที แต่เวลาเหลือแค่ 30 นาที -> ก็เอาแค่ 30 นาที
-            safe_max_delay_min = min(context['max_wait_min'], remaining_budget_min)
-            
-            # กันพลาด: ถ้าเหลือน้อยมากๆ (ต่ำกว่า 1 นาที) ให้ข้าม
-            if safe_max_delay_min < 1: safe_max_delay_min = 0
+            print("   ➤ Skipped Random Delay (Budget tight or Config 0)")
+        bot_ui.print_closer()
 
-        # 3. เริ่ม Random Delay ด้วยค่าที่ปลอดภัย (Safe Delay)
-        apply_random_delay(safe_max_delay_min)
-
-        # 4. เตรียมเนื้อหา
-        client, api_v1 = get_twitter_client()
-        message = prepare_message(context['msg_index'], bot_data["messages"], hashtag_pool)
+        # 6. เตรียม Content & API
+        client, api_v1 = get_twitter_api()
+        message = prepare_tweet_content(context['msg_index'], bot_data.get("messages", []), hashtag_pool)
         
         bot_ui.print_preview_box(message)
 
-        # 5. อัปโหลดรูป
+        # 7. อัปโหลดรูป [Step 3]
         media_ids = []
         if context['upload_image'] and "images" in bot_data:
-            media_ids = upload_images(api_v1, bot_data["images"])
+            media_ids = process_image_uploads(api_v1, bot_data["images"])
 
-        # 6. โพสต์
-        post_tweet(client, message, media_ids)
+        # 8. โพสต์ [Step 4]
+        process_posting(client, message, media_ids or None)
 
     except Exception as e:
         print("\n" + "!"*50)
@@ -215,6 +268,3 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         print("!"*50)
     
     bot_ui.print_end()
-
-
-
