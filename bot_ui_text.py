@@ -1,13 +1,13 @@
 # ======================================================
-# 🎨 ไฟล์: bot_ui.py
-# (Custom UI: d[o_0]b Style + Custom Progress Bars)
+# 🎨 ไฟล์: bot_ui_text.py
+# (Custom UI: d[o_0]b Style + Steps + Custom Bar Styles)
 # ======================================================
 
 # ------------------------------------------------------
 # ⚙️ PROGRESS BAR SETTINGS (เลือกสไตล์ที่ชอบได้ตรงนี้)
 # ------------------------------------------------------
-# ตัวเลือก: "BLOCK", "SHADE", "RECT", "CIRCLE", "VERTICAL", "SQUARE"
-ACTIVE_STYLE = "RECT" 
+# เปลี่ยนค่าตรงนี้เป็น: "BLOCK", "SHADE", "RECT", "CIRCLE", "VERTICAL", "SQUARE"
+ACTIVE_STYLE = "SHADE" 
 
 BAR_STYLES = {
     "BLOCK":    {"fill": "█", "empty": "░"},  # █████████░░░░
@@ -76,36 +76,40 @@ def print_waiting_header():
     print_section_header("⏱︎ [WAITING PROCESS]  [1/4]")
 
 def print_waiting_bar(percent, remaining_seconds, is_finished=False, custom_status=None):
-    """
-    แสดง Progress Bar ตามสไตล์ที่เลือกใน ACTIVE_STYLE
-    """
-    # ดึงค่า Config ตามสไตล์ที่เลือก
+    """แสดง Progress Bar (แก้ให้โชว์ 100% เต็มหลอด)"""
+    
+    # 1. เลือกสไตล์
     style = BAR_STYLES.get(ACTIVE_STYLE, BAR_STYLES["SHADE"])
     fill_char = style["fill"]
     empty_char = style["empty"]
-
     bar_length = 25
-    filled_length = int(bar_length * percent // 100)
     
+    # 2. กำหนดสถานะข้อความและค่า %
     if is_finished:
-        # ไม่ต้อง print อะไรเพิ่มตอนจบ ให้ process จัดการเอง
-        pass 
+        percent = 100
+        remaining_seconds = 0
+        # ใช้ข้อความที่ส่งมา (เช่น Waking Up!) ต่อท้ายเลย ไม่ต้องขึ้นบรรทัดใหม่
+        status_text = custom_status if custom_status else "Target Reached!"
     else:
         status_text = custom_status if custom_status else "Waiting..."
-        time_str = format_time_str(remaining_seconds)
-        
-        # สร้าง Bar
-        bar = fill_char * filled_length + empty_char * (bar_length - filled_length)
-        print(f"   {bar} {percent}% | ETA: {time_str} | {status_text}")
+    
+    # 3. สร้าง Bar
+    filled_length = int(bar_length * percent // 100)
+    bar = fill_char * filled_length + empty_char * (bar_length - filled_length)
+    time_str = format_time_str(remaining_seconds)
+    
+    # 4. แสดงผล (บรรทัดเดียวจบ)
+    print(f"   {bar} {percent}% | ETA: {time_str} | {status_text}")
 
 # --- STEP 2: EXECUTION ---
 def print_execution_header():
     print_section_header("  [EXECUTION START] [2/4]")
 
 def print_time_budget(limit_min, elapsed_min, remaining_min, config_delay, safe_delay):
-    """แสดงตารางวิเคราะห์เวลา"""
     print(" 📊 [TIME BUDGET ANALYSIS]")
-    print(f"   ➤ Limit: {limit_min}m | Used: {elapsed_min:.1f}m | Left: {remaining_min:.1f}m")
+    print(f"   ➤ Total Runtime   : {limit_min} mins")
+    print(f"   ➤ Time Elapsed    : {elapsed_min:.1f} mins")
+    print(f"   ➤ Remaining       : {remaining_min:.1f} mins")
     
     if safe_delay < config_delay:
         print(f"   ➤ Config: {config_delay}m -> Safe: {int(safe_delay)}m ⚠️ (Adjusted)")
