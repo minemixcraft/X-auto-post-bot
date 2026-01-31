@@ -8,8 +8,6 @@ from datetime import datetime, timezone, timedelta
 import bot_ui_text as bot_ui 
 # import bot_ui as bot_ui 
 
-
-
 # ======================================================
 # 1. TIME & SCHEDULE
 # ======================================================
@@ -51,11 +49,14 @@ def wait_for_schedule_start(target_hour):
     # [STEP 1]
     bot_ui.print_waiting_header()
     
+    waited_seconds = 0
+    start_wait = time.time() # จับเวลาเริ่มรอ
+
     while True:
         now = get_thai_time()
         if now.hour >= target_hour:
-            # ถ้าถึงเวลาแล้ว ปริ้น 100% หลอกๆ เพื่อความสวยงาม หรือข้ามไปเลยก็ได้
             break 
+        
         wait_seconds = get_seconds_until_target(now, target_hour)
         if wait_seconds > 0:
             execute_sleep_with_progress(wait_seconds)
@@ -64,13 +65,18 @@ def wait_for_schedule_start(target_hour):
             time.sleep(30)
     
     bot_ui.print_closer()
+    
+    # คืนค่าเวลาที่ใช้ไปทั้งหมดในช่วง Wait
+    waited_seconds = time.time() - start_wait
+    return waited_seconds
 
 def apply_random_delay(max_wait_min):
+    # ฟังก์ชันนี้รับค่า max_wait_min ที่ถูกคำนวณมาอย่างปลอดภัยแล้วจาก Main Flow
     if max_wait_min > 0:
         # [STEP 2]
         bot_ui.print_execution_header()
         
-        wait_sec = random.randint(60, max_wait_min * 60)
+        wait_sec = random.randint(60, int(max_wait_min * 60))
         bot_ui.print_strategy_info(wait_sec // 60, wait_sec % 60)
         
         chunk_size = wait_sec / 10
@@ -136,40 +142,71 @@ def post_tweet(client, message, media_ids=None):
     bot_ui.print_closer()
 
 # ======================================================
-# 4. MAIN FLOW
+# 4. MAIN FLOW (Safety Logic Added)
 # ======================================================
 def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
     bot_ui.print_header(bot_name)
+    
+    # 🔥 จับเวลาเริ่ม Workflow (GitHub Limit 2 ชั่วโมง)
+    workflow_start_time = time.time()
+    MAX_RUNTIME_SEC = 110 * 60  # ตั้งเป้าจบใน 110 นาที (เผื่อ Buffer 10 นาที)
 
     try:
         start_time = get_thai_time()
         context = get_schedule_context(start_time.hour)
         
-        # SYSTEM CHECK (ส่งเวลาปัจจุบันเพิ่มไปแสดงผล)
+        # SYSTEM CHECK
         bot_ui.print_system_check(
             context_name=context['name'], 
             target_time=f"{context['target_hour']}:00",
             current_date=start_time.strftime("%Y-%m-%d"),
-            current_time=start_time.strftime("%H:%M:%S"), # 🔥 ส่งเวลา
+            current_time=start_time.strftime("%H:%M:%S"),
             upload_image=context['upload_image'],
             msg_count=len(bot_data['messages']),
             tag_count=len(hashtag_pool),
             max_delay=context['max_wait_min']
         )
 
-        wait_for_schedule_start(context['target_hour'])
+        # 1. รอเวลาตามเป้าหมาย (Wait System)
+        # รับค่ากลับมาว่าใช้เวลาไปเท่าไหร่
+        waited_sec = wait_for_schedule_start(context['target_hour'])
 
-        apply_random_delay(context['max_wait_min'])
+        # 2. คำนวณเวลาที่เหลือสำหรับ Random Delay
+        # เวลาที่ผ่านไปแล้วทั้งหมด
+        elapsed_total = time.time() - workflow_start_time
+        
+        # เวลาที่เหลือให้ใช้ได้
+        remaining_budget_sec = MAX_RUNTIME_SEC - elapsed_total
+        
+        if remaining_budget_sec <= 0:
+            print("⚠️ Time Limit Exceeded! Skipping Random Delay.")
+            safe_max_delay_min = 0
+        else:
+            # แปลงวินาทีที่เหลือ เป็นนาที
+            remaining_budget_min = remaining_budget_sec / 60
+            
+            # เลือกค่าที่น้อยกว่า ระหว่าง "Config เดิม" กับ "เวลาที่เหลือจริง"
+            # เช่น Config ตั้งไว้ 90 นาที แต่เวลาเหลือแค่ 30 นาที -> ก็เอาแค่ 30 นาที
+            safe_max_delay_min = min(context['max_wait_min'], remaining_budget_min)
+            
+            # กันพลาด: ถ้าเหลือน้อยมากๆ (ต่ำกว่า 1 นาที) ให้ข้าม
+            if safe_max_delay_min < 1: safe_max_delay_min = 0
 
+        # 3. เริ่ม Random Delay ด้วยค่าที่ปลอดภัย (Safe Delay)
+        apply_random_delay(safe_max_delay_min)
+
+        # 4. เตรียมเนื้อหา
         client, api_v1 = get_twitter_client()
         message = prepare_message(context['msg_index'], bot_data["messages"], hashtag_pool)
         
         bot_ui.print_preview_box(message)
 
+        # 5. อัปโหลดรูป
         media_ids = []
         if context['upload_image'] and "images" in bot_data:
             media_ids = upload_images(api_v1, bot_data["images"])
 
+        # 6. โพสต์
         post_tweet(client, message, media_ids)
 
     except Exception as e:
@@ -178,5 +215,6 @@ def run_autopost_workflow(bot_name, bot_data, hashtag_pool):
         print("!"*50)
     
     bot_ui.print_end()
+
 
 
