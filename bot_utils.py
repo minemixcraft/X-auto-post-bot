@@ -427,12 +427,13 @@ def run_manual_workflow(bot_name, bot_data, hashtag_pool):
         media_ids = handle_media_uploads(api_v1, session)
 
         # 8. โพสต์ทวีตจริง [Step 4]
-        # publish_tweet_to_x(client, message, media_ids)
+        publish_tweet_to_x(client, message, media_ids)
 
     except Exception as e:
         handle_critical_error(e)
     
     bot_ui.print_end()
+
 
 
 
