@@ -2,8 +2,8 @@ import os
 import time
 import random
 import tweepy
+import re
 from datetime import datetime, timezone, timedelta
-
 # 🔥 IMPORT UI MODULE
 import bot_ui_text as bot_ui 
 # import bot_ui as bot_ui 
@@ -51,20 +51,62 @@ def calculate_safe_delay(config_delay_min, remaining_min):
     # ถ้าเหลือน้อยกว่า 1 นาที ให้ตัดเป็น 0 ไปเลยเพื่อความชัวร์
     return safe_delay if safe_delay >= 1 else 0
 
+import re
+
+# ======================================================
+# 1. PURE LOGIC & CALCULATIONS
+# ======================================================
+
+def calculate_x_char_weight(text):
+    """
+    คำนวณน้ำหนักตัวอักษรตามกฎของ X (Twitter)
+    - URL = 23 chars
+    - Emoji/Special Char = 2 chars
+    - Normal Char = 1 char
+    """
+    # 1. ค้นหาและแทนที่ URL (จำลอง t.co)
+    url_pattern = r'https?://\S+|www\.\S+|lin\.ee/\S+'
+    urls = re.findall(url_pattern, text)
+    
+    # ลบ URL ออกจากข้อความเพื่อแยกนับส่วนอื่น
+    text_without_urls = re.sub(url_pattern, '', text)
+    
+    # น้ำหนักเริ่มต้นจาก URL (กี่ลิงก์ก็ได้ ลิงก์ละ 23)
+    total_weight = len(urls) * 23
+    
+    # 2. นับส่วนที่เหลือ
+    for char in text_without_urls:
+        # ตรวจสอบว่าเป็น Emoji หรืออักขระพิเศษ (Unicode > 0x7F)
+        if ord(char) > 127:
+            total_weight += 2
+        else:
+            total_weight += 1
+            
+    return total_weight
+
 def prepare_tweet_content(msg_index, messages_list, hashtag_pool):
-    """เตรียมข้อความและ Hashtag"""
+    """เตรียมข้อความและ Hashtag โดยตรวจสอบโควตา 280 ตัวอักษร (X Weight)"""
     if not messages_list: return ""
     if msg_index >= len(messages_list): msg_index = 0
     
+    # 1. ข้อความหลัก
     base_msg = messages_list[msg_index].strip() + "\n\n"
+    
+    # 2. เตรียม Hashtag (สุ่มลำดับ)
     tags = list(set(hashtag_pool))
     random.shuffle(tags)
     
     final_msg = base_msg
+    
+    # 3. ค่อยๆ เติม Hashtag ตราบใดที่ Weight รวมยังไม่เกิน 280
     for t in tags:
-        if len(final_msg + t + " ") <= 280:
-            final_msg += t + " "
+        test_msg = final_msg + t + " "
+        
+        # 🔥 ตรวจสอบ Weight ตามกฎของ X
+        if calculate_x_char_weight(test_msg) <= 280:
+            final_msg = test_msg
         else:
+            # ถ้าคำนี้ใส่แล้วเกิน ให้หยุดเติม (เพื่อป้องกันโพสต์ไม่ผ่าน)
             break
             
     return final_msg.strip()
@@ -386,6 +428,7 @@ def run_manual_workflow(bot_name, bot_data, hashtag_pool):
         handle_critical_error(e)
     
     bot_ui.print_end()
+
 
 
 
