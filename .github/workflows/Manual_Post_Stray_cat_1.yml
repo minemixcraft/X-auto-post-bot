@@ -1,4 +1,4 @@
-name: Manual_Post_Stray_cat_1
+name: Manual_Post_Stray_Cat_1
 
 on:
   workflow_dispatch:
@@ -25,4 +25,5 @@ jobs:
           CONSUMER_SECRET: ${{ secrets.SC1_CONSUMER_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.SC1_X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.SC1_X_ACCESS_TOKEN_SECRET }}
-        run: python Manual_Post_Stray_cat_1.py
+
+        run: python Manual_Post_Stray_Cat_1.py
