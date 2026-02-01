@@ -1,4 +1,4 @@
-name: Auto_Post_Stray_cat_1
+name: Auto_Post_Stray_Cat_1
 
 on:
   schedule:
