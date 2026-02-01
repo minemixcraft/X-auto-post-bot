@@ -59,26 +59,31 @@ import re
 
 def calculate_x_char_weight(text):
     """
-    คำนวณน้ำหนักตัวอักษรตามกฎของ X (Twitter)
-    - URL = 23 chars
-    - Emoji/Special Char = 2 chars
-    - Normal Char = 1 char
+    คำนวณน้ำหนักตัวอักษรตามกฎของ X (Twitter) ฉบับปรับปรุง:
+    - URL = 23 chars (เสมอ)
+    - Emoji / อักขระพิเศษบางประเภท = 2 chars
+    - ภาษาไทย / ภาษาอังกฤษ / ตัวเลข / ช่องว่าง = 1 char
     """
-    # 1. ค้นหาและแทนที่ URL (จำลอง t.co)
+    import re
+    # 1. ค้นหาและแทนที่ URL (จองพื้นที่ 23 ตัวตามกฎ t.co)
     url_pattern = r'https?://\S+|www\.\S+|lin\.ee/\S+'
     urls = re.findall(url_pattern, text)
-    
-    # ลบ URL ออกจากข้อความเพื่อแยกนับส่วนอื่น
     text_without_urls = re.sub(url_pattern, '', text)
     
-    # น้ำหนักเริ่มต้นจาก URL (กี่ลิงก์ก็ได้ ลิงก์ละ 23)
     total_weight = len(urls) * 23
     
     # 2. นับส่วนที่เหลือ
     for char in text_without_urls:
-        # ตรวจสอบว่าเป็น Emoji หรืออักขระพิเศษ (Unicode > 0x7F)
-        if ord(char) > 127:
+        code = ord(char)
+        
+        # ช่วงรหัส Unicode ของภาษาไทยคือ 0x0E00 ถึง 0x0E7F
+        # ถ้าอยู่ในช่วงนี้ ให้นับเป็น 1 หน่วย
+        if 0x0E00 <= code <= 0x0E7F:
+            total_weight += 1
+        # ถ้าเป็น Emoji หรืออักขระพิเศษอื่นๆ (ที่รหัส > 127 และไม่ใช่ไทย) ให้นับเป็น 2 หน่วย
+        elif code > 127:
             total_weight += 2
+        # อักษรภาษาอังกฤษ ตัวเลข และสัญลักษณ์ ASCII ปกติ นับเป็น 1 หน่วย
         else:
             total_weight += 1
             
@@ -428,6 +433,7 @@ def run_manual_workflow(bot_name, bot_data, hashtag_pool):
         handle_critical_error(e)
     
     bot_ui.print_end()
+
 
 
 
