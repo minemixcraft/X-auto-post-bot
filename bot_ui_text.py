@@ -10,12 +10,12 @@
 ACTIVE_STYLE = "VERTICAL" 
 
 BAR_STYLES = {
-    "BLOCK":    {"fill": "█", "empty": "░"},  # █████████░░░░
-    "SHADE":    {"fill": "▒", "empty": "░"},  # ▒▒▒▒▒▒▒▒▒░░░░
-    "RECT":     {"fill": "▰", "empty": "▱"},  # ▰▰▰▰▱▱▱▱
-    "CIRCLE":   {"fill": "o", "empty": "."},  # ooooo.........
-    "VERTICAL": {"fill": "▮", "empty": "▯"},  # ▮▮▮▮▮▯▯▯▯
-    "SQUARE":   {"fill": "■", "empty": "□"},  # ■■■■■□□□□
+    "BLOCK":    {"fill": "█", "empty": "░"},
+    "SHADE":    {"fill": "▒", "empty": "░"},
+    "RECT":     {"fill": "▰", "empty": "▱"},
+    "CIRCLE":   {"fill": "o", "empty": "."},
+    "VERTICAL": {"fill": "▮", "empty": "▯"},
+    "SQUARE":   {"fill": "■", "empty": "□"},
 }
 # ------------------------------------------------------
 
@@ -31,7 +31,6 @@ def format_time_str(total_seconds):
 # ======================================================
 
 def print_header(bot_name):
-    """แสดง Header หน้า Robot d[o_0]b"""
     width = 52
     title = f"d[o_0]b {bot_name.upper()} X-BOT"
     print("\n" + "╔" + "═"*width + "╗")
@@ -39,12 +38,10 @@ def print_header(bot_name):
     print("╚" + "═"*width + "╝")
 
 def print_section_header(title):
-    """แสดงหัวข้อพร้อมเส้นคู่"""
     print(f"\n{title}")
     print("=" * 52)
 
 def print_closer():
-    """เส้นปิดท้าย Section"""
     print("=" * 52)
 
 def print_info(label, value):
@@ -77,29 +74,22 @@ def print_waiting_header():
     print_section_header("⏱︎ [WAITING PROCESS]  [1/4]")
 
 def print_waiting_bar(percent, remaining_seconds, is_finished=False, custom_status=None):
-    """แสดง Progress Bar (แก้ให้โชว์ 100% เต็มหลอด)"""
-    
-    # 1. เลือกสไตล์
     style = BAR_STYLES.get(ACTIVE_STYLE, BAR_STYLES["SHADE"])
     fill_char = style["fill"]
     empty_char = style["empty"]
     bar_length = 25
     
-    # 2. กำหนดสถานะข้อความและค่า %
     if is_finished:
         percent = 100
         remaining_seconds = 0
-        # ใช้ข้อความที่ส่งมา (เช่น Waking Up!) ต่อท้ายเลย ไม่ต้องขึ้นบรรทัดใหม่
         status_text = custom_status if custom_status else "Target Reached!"
     else:
         status_text = custom_status if custom_status else "Waiting..."
     
-    # 3. สร้าง Bar
     filled_length = int(bar_length * percent // 100)
     bar = fill_char * filled_length + empty_char * (bar_length - filled_length)
     time_str = format_time_str(remaining_seconds)
     
-    # 4. แสดงผล (บรรทัดเดียวจบ)
     print(f"   {bar} {percent}% | ETA: {time_str} | {status_text}")
 
 # --- STEP 2: EXECUTION ---
@@ -124,7 +114,7 @@ def print_strategy_info(wait_minutes, wait_seconds):
     print("   ... (Sleeping) ...")
 
 # --- PREVIEW ---
-def print_preview_box(message):
+def print_preview_box(message, stats=None):
     lines = message.split('\n')
     max_len = 0
     for line in lines:
@@ -136,6 +126,17 @@ def print_preview_box(message):
     for line in lines:
         print(f"│ {line:<{box_width-1}}│") 
     print("└" + "─" * box_width + "┘")
+
+    # 🔥 ส่วนแสดง Breakdown น้ำหนัก
+    if stats:
+        print(f"\n   📊 Weight Analysis ({stats['total_weight']}/280)")
+        print(f"   --------------------------------------------------")
+        print(f"   ➤ Text (TH/EN)    : {stats['text_count']:<3} chars = {stats['text_weight']:<3} units")
+        print(f"   ➤ Emoji/Special   : {stats['emoji_count']:<3} chars = {stats['emoji_weight']:<3} units")
+        print(f"   ➤ Space/Newline   : {stats['space_count']:<3} chars = {stats['space_weight']:<3} units")
+        if stats['link_count'] > 0:
+            print(f"   ➤ Links (URL)     : {stats['link_count']:<3} links = {stats['link_weight']:<3} units")
+        print(f"   --------------------------------------------------")
 
 # --- STEP 3: UPLOADING ---
 def print_upload_header():
@@ -154,11 +155,18 @@ def print_upload_error(filename, error):
 def print_pose_header():
     print_section_header("  [POSE]       [4/4]")
     
-def print_post_success(tweet_id, timestamp):
-    """เพิ่มการรับค่า timestamp"""
+def print_post_success(info):
+    """
+    รับ info เป็น dict รวมข้อมูลสำคัญ
+    {id, timestamp, url, media_count, char_count, weight}
+    """
     print("\n       ✅ [TWEET POSTED SUCCESSFULLY]")
-    print(f"   ➤ Tweet ID      : {tweet_id}")
-    print(f"   ➤ Timestamp     : {timestamp}")
+    print(f"   ➤ Tweet ID      : {info['id']}")
+    print(f"   ➤ Timestamp     : {info['timestamp']}")
+    print(f"   ➤ Tweet URL     : {info['url']}")
+    print(f"   ----------------------------------")
+    print(f"   ➤ Media Uploaded: {info['media_count']} files")
+    print(f"   ➤ Final Weight  : {info['weight']}/280 units")
 
 # --- END ---
 def print_end():
