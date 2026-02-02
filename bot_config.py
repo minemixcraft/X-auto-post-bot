@@ -9,7 +9,7 @@
 SYSTEM_CONFIG = {
     "MAX_RUNTIME_MIN": 110,     # เวลาทำงานสูงสุดก่อนตัดจบ
     "TIMEZONE_HOURS": 7,        # UTC Offset (ไทย = +7)
-    "DRY_RUN": False,           # True = รันเทสแต่ไม่โพสต์จริง, False = โพสต์จริง
+    "DRY_RUN": True,           # True = รันเทสแต่ไม่โพสต์จริง, False = โพสต์จริง
 }
 
 # ------------------------------------------------------
@@ -108,3 +108,4 @@ MOONCHILL_DATA = {
     ]
 
 }
+
