@@ -1,13 +1,9 @@
 # ======================================================
 # 🎨 ไฟล์: bot_ui_text.py
-# (Custom UI: d[o_0]b Style + Steps + Custom Bar Styles)
 # ======================================================
+from bot_config import UI_CONFIG
 
-# ------------------------------------------------------
-# ⚙️ PROGRESS BAR SETTINGS (เลือกสไตล์ที่ชอบได้ตรงนี้)
-# ------------------------------------------------------
-# เปลี่ยนค่าตรงนี้เป็น: "BLOCK", "SHADE", "RECT", "CIRCLE", "VERTICAL", "SQUARE"
-ACTIVE_STYLE = "VERTICAL" 
+ACTIVE_STYLE = UI_CONFIG.get("PROGRESS_STYLE", "VERTICAL") 
 
 BAR_STYLES = {
     "BLOCK":    {"fill": "█", "empty": "░"},
@@ -17,7 +13,6 @@ BAR_STYLES = {
     "VERTICAL": {"fill": "▮", "empty": "▯"},
     "SQUARE":   {"fill": "■", "empty": "□"},
 }
-# ------------------------------------------------------
 
 def format_time_str(total_seconds):
     if total_seconds < 0: total_seconds = 0
@@ -27,7 +22,7 @@ def format_time_str(total_seconds):
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 # ======================================================
-# 1. CORE PRINTING FUNCTIONS
+# 1. CORE PRINTING
 # ======================================================
 
 def print_header(bot_name):
@@ -69,7 +64,6 @@ def print_system_check(context_name, target_time, current_date, current_time, up
     print_info("Max Delay", f"{max_delay} mins")
     print_closer()
 
-# --- STEP 1: WAITING ---
 def print_waiting_header():
     print_section_header("⏱︎ [WAITING PROCESS]  [1/4]")
 
@@ -92,7 +86,6 @@ def print_waiting_bar(percent, remaining_seconds, is_finished=False, custom_stat
     
     print(f"   {bar} {percent}% | ETA: {time_str} | {status_text}")
 
-# --- STEP 2: EXECUTION ---
 def print_execution_header():
     print_section_header("  [EXECUTION START] [2/4]")
 
@@ -113,7 +106,6 @@ def print_strategy_info(wait_minutes, wait_seconds):
     print(f"   ➤ Strategy        : Random Delay ({wait_minutes}m {wait_seconds}s)")
     print("   ... (Sleeping) ...")
 
-# --- PREVIEW ---
 def print_preview_box(message, stats=None):
     lines = message.split('\n')
     max_len = 0
@@ -127,7 +119,6 @@ def print_preview_box(message, stats=None):
         print(f"│ {line:<{box_width-1}}│") 
     print("└" + "─" * box_width + "┘")
 
-    # 🔥 ส่วนแสดง Breakdown น้ำหนัก
     if stats:
         print(f"\n   📊 Weight Analysis ({stats['total_weight']}/280)")
         print(f"   --------------------------------------------------")
@@ -138,7 +129,6 @@ def print_preview_box(message, stats=None):
             print(f"   ➤ Links (URL)     : {stats['link_count']:<3} links = {stats['link_weight']:<3} units")
         print(f"   --------------------------------------------------")
 
-# --- STEP 3: UPLOADING ---
 def print_upload_header():
     print_section_header("  [UPLOADING] [3/4]")
 
@@ -151,15 +141,10 @@ def print_upload_item(filename, media_id):
 def print_upload_error(filename, error):
     print(f"   ❌ Error {filename} : {error}")
 
-# --- STEP 4: POSE ---
 def print_pose_header():
     print_section_header("  [POSE]       [4/4]")
     
 def print_post_success(info):
-    """
-    รับ info เป็น dict รวมข้อมูลสำคัญ
-    {id, timestamp, url, media_count, char_count, weight}
-    """
     print("\n       ✅ [TWEET POSTED SUCCESSFULLY]")
     print(f"   ➤ Tweet ID      : {info['id']}")
     print(f"   ➤ Timestamp     : {info['timestamp']}")
@@ -168,7 +153,6 @@ def print_post_success(info):
     print(f"   ➤ Media Uploaded: {info['media_count']} files")
     print(f"   ➤ Final Weight  : {info['weight']}/280 units")
 
-# --- END ---
 def print_end():
     print_section_header("  [END]")
     print("✅ WORKFLOW COMPLETED")

@@ -1,9 +1,9 @@
 # ======================================================
 # 🎨 ไฟล์: bot_ui.py (ASCII Art Version)
-# (Updated to match Text Version Interface)
 # ======================================================
+from bot_config import UI_CONFIG
 
-ACTIVE_STYLE = "RECT" 
+ACTIVE_STYLE = UI_CONFIG.get("PROGRESS_STYLE", "VERTICAL")
 
 BAR_STYLES = {
     "BLOCK":    {"fill": "█", "empty": "░"},
@@ -63,9 +63,6 @@ def print_art(key):
     if key in ASCII_ART:
         print(ASCII_ART[key].strip())
 
-# ======================================================
-# CORE PRINTING
-# ======================================================
 def print_header(bot_name):
     print("\n" + "="*50)
     print_art("HEADER")
@@ -86,9 +83,6 @@ def print_info(label, value):
 def print_error(message):
     print(f"   ❌ {message}")
 
-# ======================================================
-# SPECIFIC SECTIONS
-# ======================================================
 def print_system_check(context_name, target_time, current_date, current_time, upload_image, msg_count, tag_count, max_delay):
     print_section("SYSTEM_CHECK")
     print_info("Context", context_name)
