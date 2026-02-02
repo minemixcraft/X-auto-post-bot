@@ -25,7 +25,7 @@ UI_CONFIG = {
     "PROGRESS_STYLE": "VERTICAL", 
     
     # แสดงกล่องตัวอย่างทวีตก่อนโพสต์หรือไม่
-    "SHOW_PREVIEW": False
+    "SHOW_PREVIEW": True
 }
 
 # ------------------------------------------------------
@@ -108,4 +108,5 @@ MOONCHILL_DATA = {
     ]
 
 }
+
 
