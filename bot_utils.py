@@ -302,6 +302,7 @@ def publish_tweet_to_x(client, message, media_ids):
         raise
         
     bot_ui.print_closer()
+
 def handle_critical_error(e):
     print("\n" + "!"*50)
     print(f"❌ CRITICAL SYSTEM ERROR: {e}")
@@ -335,3 +336,75 @@ def run_manual_workflow(bot_name, bot_data, hashtag_pool):
     except Exception as e:
         handle_critical_error(e)
     bot_ui.print_end()
+
+# ======================================================
+# 4. DIAGNOSTICS & DEBUGGING
+# ======================================================
+
+def run_x_diagnostics():
+    print("\n" + "="*60)
+    print("X API DIAGNOSTIC")
+    print("="*60)
+
+    try:
+        client, api_v1 = get_twitter_api()
+
+        print("\n[1] ENV CHECK")
+        print(f"CONSUMER_KEY         : {bool(os.getenv('CONSUMER_KEY'))}")
+        print(f"CONSUMER_SECRET      : {bool(os.getenv('CONSUMER_SECRET'))}")
+        print(f"X_ACCESS_TOKEN       : {bool(os.getenv('X_ACCESS_TOKEN'))}")
+        print(f"X_ACCESS_TOKEN_SECRET: {bool(os.getenv('X_ACCESS_TOKEN_SECRET'))}")
+
+        print("\n[2] AUTH TEST (OAuth 1.0)")
+        try:
+            user = api_v1.verify_credentials()
+            print("✅ verify_credentials() OK")
+            print(f"User: {user.screen_name}")
+        except Exception as e:
+            print("❌ verify_credentials FAILED")
+            print(type(e))
+            print(repr(e))
+
+        print("\n[3] API v2 USER TEST")
+        try:
+            me = client.get_me()
+            print("✅ get_me() OK")
+            print(me)
+        except Exception as e:
+            print("❌ get_me() FAILED")
+            print(type(e))
+            print(repr(e))
+
+            if hasattr(e, "response"):
+                print("STATUS:", e.response.status_code)
+                print("BODY:", e.response.text)
+
+        print("\n[4] POST TEST")
+        try:
+            # เพิ่ม random number เพื่อป้องกัน error duplicate content ตอนรันเทสหลายรอบ
+            test_text = f"Diagnostic Test Post - {random.randint(1000, 9999)}"
+            response = client.create_tweet(text=test_text)
+            
+            print("✅ create_tweet() OK")
+            print(response)
+
+        except Exception as e:
+            print("❌ create_tweet() FAILED")
+            print(type(e))
+            print(repr(e))
+
+            if hasattr(e, "response"):
+                print("STATUS:", e.response.status_code)
+                print("BODY:", e.response.text)
+
+        print("\n[5] APP STATUS")
+        print("Check Developer Portal manually:")
+        print("- App Suspended?")
+        print("- Billing Active?")
+        print("- Read/Write Permission?")
+        print("- Access Token Regenerated?")
+
+    except Exception as e:
+        print("\n❌ CRITICAL ERROR IN DIAGNOSTICS")
+        print(type(e))
+        print(repr(e))
