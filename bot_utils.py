@@ -281,10 +281,27 @@ def publish_tweet_to_x(client, message, media_ids):
             "weight": calculate_x_char_weight(message)
         }
         bot_ui.print_post_success(post_info)
+        
+    except tweepy.TweepyException as e:
+        print("\n   ❌ [TWITTER API ERROR]")
+        print(f"   ➤ Type  : {type(e)}")
+        print(f"   ➤ Error : {repr(e)}")
+        
+        # ดึงข้อมูล Response แบบละเอียดออกมา (ถ้ามี)
+        if hasattr(e, "response") and e.response is not None:
+            print(f"   ➤ STATUS: {e.response.status_code}")
+            print(f"   ➤ BODY  : {e.response.text}")
+        
+        # โยน Error ออกไปเพื่อให้ระบบ Orchestrator (run_autopost_workflow) 
+        # ทำการตัดจบและแสดงเป็น CRITICAL ERROR 
+        raise 
+        
     except Exception as e:
-        print(f"   ❌ Failed to tweet: {e}")
+        print(f"\n   ❌ [UNEXPECTED ERROR]")
+        print(f"   ➤ Error : {repr(e)}")
+        raise
+        
     bot_ui.print_closer()
-
 def handle_critical_error(e):
     print("\n" + "!"*50)
     print(f"❌ CRITICAL SYSTEM ERROR: {e}")
