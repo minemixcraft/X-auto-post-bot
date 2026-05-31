@@ -338,73 +338,52 @@ def run_manual_workflow(bot_name, bot_data, hashtag_pool):
     bot_ui.print_end()
 
 # ======================================================
-# 4. DIAGNOSTICS & DEBUGGING
+# 4. DIAGNOSTICS & DEBUGGING (FULL-SUITE VERSION)
 # ======================================================
 
 def run_x_diagnostics():
     print("\n" + "="*60)
-    print("X API DIAGNOSTIC")
+    print("🛸 X API FULL-SUITE DIAGNOSTIC MODE")
     print("="*60)
 
     try:
         client, api_v1 = get_twitter_api()
 
-        print("\n[1] ENV CHECK")
-        print(f"CONSUMER_KEY         : {bool(os.getenv('CONSUMER_KEY'))}")
-        print(f"CONSUMER_SECRET      : {bool(os.getenv('CONSUMER_SECRET'))}")
-        print(f"X_ACCESS_TOKEN       : {bool(os.getenv('X_ACCESS_TOKEN'))}")
-        print(f"X_ACCESS_TOKEN_SECRET: {bool(os.getenv('X_ACCESS_TOKEN_SECRET'))}")
+        # --------------------------------------------------
+        # STEP 1: ENVIRONMENT VARIABLES CHECK
+        # --------------------------------------------------
+        print("\n[1] ENV VARIABLES CHECK")
+        print(f"   ➤ CONSUMER_KEY         : {'✅ FOUND' if os.getenv('CONSUMER_KEY') else '❌ MISSING'}")
+        print(f"   ➤ CONSUMER_SECRET      : {'✅ FOUND' if os.getenv('CONSUMER_SECRET') else '❌ MISSING'}")
+        print(f"   ➤ X_ACCESS_TOKEN       : {'✅ FOUND' if os.getenv('X_ACCESS_TOKEN') else '❌ MISSING'}")
+        print(f"   ➤ X_ACCESS_TOKEN_SECRET: {'✅ FOUND' if os.getenv('X_ACCESS_TOKEN_SECRET') else '❌ MISSING'}")
 
-        print("\n[2] AUTH TEST (OAuth 1.0)")
+        # --------------------------------------------------
+        # STEP 2: AUTHENTICATION & PERMISSION TEST
+        # --------------------------------------------------
+        print("\n[2] AUTHENTICATION TEST (OAuth 1.0a)")
+        oauth_success = False
         try:
             user = api_v1.verify_credentials()
-            print("✅ verify_credentials() OK")
-            print(f"User: {user.screen_name}")
+            print("   ✅ verify_credentials() SUCCESS")
+            print(f"   ➤ Authenticated User   : @{user.screen_name}")
+            print(f"   ➤ Account Created At   : {user.created_at}")
+            oauth_success = True
         except Exception as e:
-            print("❌ verify_credentials FAILED")
-            print(type(e))
-            print(repr(e))
+            print("   ❌ verify_credentials() FAILED")
+            print(f"   ➤ Error Type: {type(e)}")
+            print(f"   ➤ Details   : {repr(e)}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"   ➤ STATUS: {e.response.status_code} | BODY: {e.response.text}")
 
-        print("\n[3] API v2 USER TEST")
+        # --------------------------------------------------
+        # STEP 3: API v2 & USER INFO TEST
+        # --------------------------------------------------
+        print("\n[3] API v2 & USER INFO TEST")
+        v2_success = False
         try:
-            me = client.get_me()
-            print("✅ get_me() OK")
-            print(me)
-        except Exception as e:
-            print("❌ get_me() FAILED")
-            print(type(e))
-            print(repr(e))
-
-            if hasattr(e, "response"):
-                print("STATUS:", e.response.status_code)
-                print("BODY:", e.response.text)
-
-        print("\n[4] POST TEST")
-        try:
-            # เพิ่ม random number เพื่อป้องกัน error duplicate content ตอนรันเทสหลายรอบ
-            test_text = f"Diagnostic Test Post - {random.randint(1000, 9999)}"
-            response = client.create_tweet(text=test_text)
-            
-            print("✅ create_tweet() OK")
-            print(response)
-
-        except Exception as e:
-            print("❌ create_tweet() FAILED")
-            print(type(e))
-            print(repr(e))
-
-            if hasattr(e, "response"):
-                print("STATUS:", e.response.status_code)
-                print("BODY:", e.response.text)
-
-        print("\n[5] APP STATUS")
-        print("Check Developer Portal manually:")
-        print("- App Suspended?")
-        print("- Billing Active?")
-        print("- Read/Write Permission?")
-        print("- Access Token Regenerated?")
-
-    except Exception as e:
-        print("\n❌ CRITICAL ERROR IN DIAGNOSTICS")
-        print(type(e))
-        print(repr(e))
+            # ดึงข้อมูลตัวเองพร้อมตรวจเช็ก public_metrics ตามคู่มือ
+            me = client.get_me(user_fields=["public_metrics", "description"])
+            print("   ✅ get_me() SUCCESS")
+            print(f"   ➤ Name/ID  : {me.data.name} (@{me.data.username}) [ID: {me.data.id}]")
+            print(f"   ➤ Followers : {me.data.public_metrics
