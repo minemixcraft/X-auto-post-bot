@@ -16,4 +16,4 @@ if __name__ == "__main__":
     # =====================================================================
     # 💡 เมื่อซ่อมระบบเสร็จแล้ว ให้สลับ Comment สองบรรทัดล่างนี้เพื่อให้บอททำงานปกติ
     # =====================================================================
-    # run_autopost_workflow("GreenHaven", GREENHAVEN_DATA, SHARED_HASHTAGS)
+    run_autopost_workflow("GreenHaven", GREENHAVEN_DATA, SHARED_HASHTAGS)
