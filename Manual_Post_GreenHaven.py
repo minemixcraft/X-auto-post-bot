@@ -11,9 +11,9 @@ if __name__ == "__main__":
         test_image = GREENHAVEN_DATA["images"][0]
         
     # 2. รันโหมดวิเคราะห์ (ทดสอบดึงข้อมูลและอัปโหลดรูปภาพ)
-    run_x_diagnostics(test_image_path=test_image)
+    # run_x_diagnostics(test_image_path=test_image)
     
     # =====================================================================
     # 💡 หากตรวจสอบผ่านหมด (ขึ้น ✅) ให้สลับ Comment สองบรรทัดด้านล่างนี้
     # =====================================================================
-    # run_manual_workflow("GreenHaven", GREENHAVEN_DATA, SHARED_HASHTAGS)
+    run_manual_workflow("GreenHaven", GREENHAVEN_DATA, SHARED_HASHTAGS)
