@@ -26,6 +26,7 @@ coverage.xml
 # Local configuration & environment secrets
 .env
 config/credentials.env
+docs/account_credentials.md
 
 # Backups & Temporary files
 archive_backup/
