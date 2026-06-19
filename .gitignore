@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.obsidian/
+
+# Local configuration & environment secrets
+.env
+config/credentials.env
+
+# Backups & Temporary files
+archive_backup/
+reorganize.py
+temp_test.py
+asd.txt
+ntoe.txt
+acct.txt
