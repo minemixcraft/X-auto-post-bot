@@ -1,0 +1,57 @@
+name: Manual_Post
+
+on:
+  workflow_dispatch:
+    inputs:
+      bot:
+        description: 'Select the bot account to post manually'
+        required: true
+        type: choice
+        options:
+          - greenhaven
+          - moonchill
+          - stray_cat_1
+          - stray_cat_2
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+          
+      - run: pip install tweepy
+      
+      - name: Configure Environment Secrets
+        run: |
+          if [ "${{ inputs.bot }}" = "greenhaven" ]; then
+            echo "CONSUMER_KEY=${{ secrets.GH_CONSUMER_KEY }}" >> $GITHUB_ENV
+            echo "CONSUMER_SECRET=${{ secrets.GH_CONSUMER_SECRET }}" >> $GITHUB_ENV
+            echo "X_ACCESS_TOKEN=${{ secrets.GH_X_ACCESS_TOKEN }}" >> $GITHUB_ENV
+            echo "X_ACCESS_TOKEN_SECRET=${{ secrets.GH_X_ACCESS_TOKEN_SECRET }}" >> $GITHUB_ENV
+          elif [ "${{ inputs.bot }}" = "moonchill" ]; then
+            echo "CONSUMER_KEY=${{ secrets.MC_CONSUMER_KEY }}" >> $GITHUB_ENV
+            echo "CONSUMER_SECRET=${{ secrets.MC_CONSUMER_SECRET }}" >> $GITHUB_ENV
+            echo "X_ACCESS_TOKEN=${{ secrets.MC_X_ACCESS_TOKEN }}" >> $GITHUB_ENV
+            echo "X_ACCESS_TOKEN_SECRET=${{ secrets.MC_X_ACCESS_TOKEN_SECRET }}" >> $GITHUB_ENV
+          elif [ "${{ inputs.bot }}" = "stray_cat_1" ]; then
+            echo "CONSUMER_KEY=${{ secrets.SC1_CONSUMER_KEY }}" >> $GITHUB_ENV
+            echo "CONSUMER_SECRET=${{ secrets.SC1_CONSUMER_SECRET }}" >> $GITHUB_ENV
+            echo "X_ACCESS_TOKEN=${{ secrets.SC1_X_ACCESS_TOKEN }}" >> $GITHUB_ENV
+            echo "X_ACCESS_TOKEN_SECRET=${{ secrets.SC1_X_ACCESS_TOKEN_SECRET }}" >> $GITHUB_ENV
+          elif [ "${{ inputs.bot }}" = "stray_cat_2" ]; then
+            echo "CONSUMER_KEY=${{ secrets.SC2_CONSUMER_KEY }}" >> $GITHUB_ENV
+            echo "CONSUMER_SECRET=${{ secrets.SC2_CONSUMER_SECRET }}" >> $GITHUB_ENV
+            echo "X_ACCESS_TOKEN=${{ secrets.SC2_X_ACCESS_TOKEN }}" >> $GITHUB_ENV
+            echo "X_ACCESS_TOKEN_SECRET=${{ secrets.SC2_X_ACCESS_TOKEN_SECRET }}" >> $GITHUB_ENV
+          fi
+
+      - name: Run Manual Post Script
+        env:
+          PYTHONUNBUFFERED: 1
+        run: python -m src.main --bot ${{ inputs.bot }} --mode manual

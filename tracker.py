@@ -26,8 +26,9 @@ C_GRAY = "\033[90m"
 C_BG_DARK = "\033[48;5;236m"
 
 # Files
-TODO_FILE = "docs/todo.md"
-JOURNAL_FILE = "docs/journal.md"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TODO_FILE = os.path.join(SCRIPT_DIR, "docs", "todo.md")
+JOURNAL_FILE = os.path.join(SCRIPT_DIR, "docs", "journal.md")
 
 # Cross-platform single key reader
 try:
