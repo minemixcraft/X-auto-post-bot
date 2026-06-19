@@ -17,8 +17,12 @@ The codebase has been refactored to follow **Clean Architecture** and **Separati
   * **`config/settings.py`**: System rates, scheduler configurations, and shared hashtags.
   * **`config/bots/`**: Bot-specific messages and assets settings.
 * **`assets/`**: Images categorized by bot/feature.
-* **`docs/`**: Centralized documentation (accounts, diagnostics history, suspension rules).
-* **`.github/workflows/`**: Refactored automation workflows for scheduler runs.
+* **`docs/`**: Local documentation, operations journal, and account credentials.
+  * **NOTE:** This folder is ignored in `.gitignore` to prevent sensitive credentials and local history from being pushed online.
+* **`.github/workflows/`**: Consolidated GitHub Actions workflows.
+  * **`Auto_Post.yml`**: Scheduled runner coordinating all 4 bots via matrix strategy.
+  * **`Manual_Post.yml`**: Dispatches manual runs on demand.
+  * **`Diagnose_Credentials.yml`**: Runs diagnostics checks on API credentials.
 
 ---
 

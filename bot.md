@@ -19,8 +19,12 @@ The codebase has been refactored to follow **Clean Architecture** and **Separati
 ### `assets/` (Media)
 *   Contains images categorized by bot/feature. No code belongs here.
 
-### `docs/` (Documentation)
-*   Centralized documentation (accounts, diagnostics history, suspension rules).
+### `docs/` (Local Documentation & Logs)
+*   Contains local-only checklists, logs, and account credentials (`account_credentials.md`).
+*   **NOTE:** This entire folder is ignored by `.gitignore` to prevent sensitive credentials from leaking to GitHub.
+
+### `.github/workflows/` (GitHub Actions Workflows)
+*   Contains consolidated workflows like `Auto_Post.yml` (scheduled matrix runner for all bots) and `Manual_Post.yml` (manual workflow trigger).
 
 ## 3. General Coding Rules
 -   **Python Standard**: Ensure all code is modular, type-hinted, and adheres to PEP 8 standards.
