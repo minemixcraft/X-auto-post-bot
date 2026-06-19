@@ -1,4 +1,4 @@
-name: Auto_Post_Moonchill
+name: Auto_Post
 on:
   schedule:
     # 1. รอบเช้า (เป้า 08:00 ไทย) -> ตื่น 07:00 ไทย
@@ -17,7 +17,19 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - bot: greenhaven
+            prefix: GH
+          - bot: moonchill
+            prefix: MC
+          - bot: stray_cat_1
+            prefix: SC1
+          - bot: stray_cat_2
+            prefix: SC2
     steps:
       - uses: actions/checkout@v4
       
@@ -28,12 +40,11 @@ jobs:
           
       - run: pip install tweepy
       
-      - name: Run MoonChill Script
+      - name: Run Auto-Posting Script
         env:
           PYTHONUNBUFFERED: 1
-          # ใช้ Secret ชุด MC (MoonChill)
-          CONSUMER_KEY: ${{ secrets.MC_CONSUMER_KEY }}
-          CONSUMER_SECRET: ${{ secrets.MC_CONSUMER_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.MC_X_ACCESS_TOKEN }}
-          X_ACCESS_TOKEN_SECRET: ${{ secrets.MC_X_ACCESS_TOKEN_SECRET }}
-        run: python -m src.main --bot moonchill --mode auto
+          CONSUMER_KEY: ${{ secrets[format('{0}_CONSUMER_KEY', matrix.prefix)] }}
+          CONSUMER_SECRET: ${{ secrets[format('{0}_CONSUMER_SECRET', matrix.prefix)] }}
+          X_ACCESS_TOKEN: ${{ secrets[format('{0}_X_ACCESS_TOKEN', matrix.prefix)] }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets[format('{0}_X_ACCESS_TOKEN_SECRET', matrix.prefix)] }}
+        run: python -m src.main --bot ${{ matrix.bot }} --mode auto
