@@ -2,6 +2,9 @@
 
 This project contains a suite of automated and manual posting bots for multiple Twitter/X accounts (GreenHaven, Moonchill, Stray Cat 1, Stray Cat 2) running on GitHub Actions or locally.
 
+> [!NOTE]
+> AI Coding Assistants: Please refer to [structure_skill.md](file:///d:/Project/BOT/X_auto_post_bot/structure_skill.md) for core project guidelines, Clean Architecture layers, and system prompt initialization.
+
 ---
 
 ## 📁 Project Architecture
