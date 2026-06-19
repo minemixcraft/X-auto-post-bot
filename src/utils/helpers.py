@@ -6,7 +6,7 @@ from config.settings import SYSTEM_CONFIG
 def get_thai_time():
     """คืนค่าเวลาปัจจุบัน (ตาม Config Timezone)"""
     offset = SYSTEM_CONFIG.get("TIMEZONE_HOURS", 7)
-    return datetime.now(timezone.utc) + timedelta(hours=offset)
+    return datetime.now(timezone(timedelta(hours=offset)))
 
 def get_seconds_until_target(now, target_hour):
     target_time = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)

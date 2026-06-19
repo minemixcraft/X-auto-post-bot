@@ -4,11 +4,7 @@ import importlib
 from config.settings import SHARED_HASHTAGS, UI_CONFIG
 
 def get_bot_ui():
-    ui_style = UI_CONFIG.get("MODULE_NAME", "text")
-    if ui_style == "ascii":
-        from src.ui import ascii as bot_ui
-    else:
-        from src.ui import text as bot_ui
+    from src.ui import terminal as bot_ui
     return bot_ui
 
 def main():
