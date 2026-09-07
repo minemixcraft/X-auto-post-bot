@@ -177,6 +177,9 @@ def handle_critical_error(e):
     print("\n" + "!"*50)
     print(f"❌ CRITICAL SYSTEM ERROR: {e}")
     print("!"*50)
+    # re-raise เพื่อให้ process ออกด้วย exit code != 0
+    # ไม่งั้น GitHub Actions จะขึ้นเขียว "success" ทั้งที่โพสต์ไม่สำเร็จ
+    raise e
 
 def run_autopost_workflow(bot_name, bot_data, hashtag_pool, bot_ui, show_preview):
     bot_ui.print_header(bot_name)

@@ -17,7 +17,9 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # ต้องมากกว่า SYSTEM_CONFIG["MAX_RUNTIME_MIN"] (110) ใน config/settings.py
+    # ไม่งั้น job จะถูกตัดกลางคันก่อนบอทโพสต์ (worst case: รอถึงเป้า 60 + สุ่มดีเลย์ 50 = 110 นาที)
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
